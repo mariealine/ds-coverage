@@ -5,10 +5,13 @@
  * Zero dependencies — uses only Node.js built-ins.
  */
 
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join, relative, extname } from "node:path";
 import type { DsCoverageConfig } from "./config.js";
 import type { Violation, FileReport, CategorySummary } from "./types.js";
+
+/** Max file size to scan (512 KB) — skip larger files to avoid memory issues */
+const MAX_FILE_SIZE = 512 * 1024;
 
 // ============================================
 // FILE DISCOVERY
@@ -120,6 +123,14 @@ function scanFileContent(
   // Scan each violation category
   for (const [key, catConfig] of Object.entries(config.violations)) {
     if (!catConfig.enabled) continue;
+    try {
+      // Validate regex pattern before using
+      new RegExp(catConfig.pattern, "g");
+    } catch {
+      // Skip invalid patterns silently (already warned at config load)
+      allViolations[key] = [];
+      continue;
+    }
     let violations = findViolations(content, catConfig.pattern, false);
     if (catConfig.deduplicateByLine) {
       violations = deduplicateByLine(violations);
@@ -183,14 +194,36 @@ export async function scan(
   config: DsCoverageConfig,
 ): Promise<ScanResult> {
   const scanDir = join(projectRoot, config.scanDir);
+
+  // Verify scanDir exists
+  try {
+    const s = await stat(scanDir);
+    if (!s.isDirectory()) {
+      throw new Error(`scanDir "${config.scanDir}" is not a directory.`);
+    }
+  } catch (err: unknown) {
+    if (err instanceof Error && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(
+        `scanDir "${config.scanDir}" does not exist. Check your ds-coverage.config or run \`npx ds-coverage init\`.`,
+      );
+    }
+    throw err;
+  }
+
   const filePaths = await discoverFiles(scanDir, config.extensions, config.exclude);
 
-  // Read all file contents
+  // Read all file contents (skip files > MAX_FILE_SIZE)
   const fileContents = new Map<string, string>();
   await Promise.all(
     filePaths.map(async (fp) => {
-      const content = await readFile(fp, "utf-8");
-      fileContents.set(fp, content);
+      try {
+        const s = await stat(fp);
+        if (s.size > MAX_FILE_SIZE) return; // skip very large files
+        const content = await readFile(fp, "utf-8");
+        fileContents.set(fp, content);
+      } catch {
+        // skip unreadable files
+      }
     }),
   );
 

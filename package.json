@@ -1,20 +1,20 @@
 {
   "name": "ds-coverage",
   "version": "0.1.0",
-  "description": "Design system coverage scanner & dashboard — detect hardcoded tokens, audit component APIs, and track migration progress.",
+  "description": "Design system coverage scanner & AI guidelines — enforce token usage, audit component APIs, and scaffold Cursor rules for any frontend project.",
   "type": "module",
   "license": "MIT",
   "keywords": [
     "design-system",
     "coverage",
-    "tailwind",
-    "tokens",
+    "design-tokens",
     "scanner",
     "dashboard",
-    "cva",
-    "radix",
-    "design-tokens",
-    "migration"
+    "cursor-rules",
+    "ai-guidelines",
+    "migration",
+    "component-api",
+    "frontend"
   ],
   "files": [
     "dist",
@@ -42,22 +42,17 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.js",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
+    "@types/node": "^25.2.1",
     "tsup": "^8.0.0",
     "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "homepage": "",
-  "bugs": {
-    "url": ""
-  },
-  "repository": {
-    "type": "git",
-    "url": ""
   },
   "author": "Marie-Aline Millot"
 }

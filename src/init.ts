@@ -4,15 +4,19 @@
  * Scaffolds AI guidelines (rules + skills) into the project.
  * Supports Cursor (.cursor/rules/), Claude (.claude/skills/),
  * and generic agents (.agents/skills/).
+ *
+ * When run interactively, launches a wizard to guide the user
+ * through configuration and generates the config file + skills.
  */
 
-import { mkdir, writeFile, access } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access } from "node:fs/promises";
 import { join, dirname } from "node:path";
-import { loadConfig } from "./config.js";
+import { loadConfig, deepMerge } from "./config.js";
 import type { DsCoverageConfig } from "./config.js";
 import { generateComplianceRule } from "./templates/compliance-rule.js";
 import { generateComponentRule } from "./templates/component-rule.js";
 import { generateSkill } from "./templates/skill.js";
+import { runWizard, buildConfigFromAnswers, serializeConfig } from "./wizard.js";
 
 export interface InitOptions {
   projectRoot?: string;
@@ -26,6 +30,8 @@ export interface InitOptions {
   dryRun?: boolean;
   /** Force overwrite existing files */
   force?: boolean;
+  /** Skip interactive wizard (use existing config or defaults) */
+  noInteractive?: boolean;
 }
 
 interface GeneratedFile {
@@ -43,14 +49,57 @@ export async function init(options: InitOptions = {}): Promise<GeneratedFile[]> 
   const targets = options.targets || [...ALL_TARGETS];
   const log = options.silent ? () => {} : console.log;
 
-  // Load config
-  let config = await loadConfig(projectRoot);
-  if (options.config) {
-    const { deepMerge } = await import("./config.js");
-    config = deepMerge(config, options.config);
+  let config: DsCoverageConfig;
+
+  // Check if a config file already exists
+  let configExists = false;
+  const configFileNames = [
+    "ds-coverage.config.js",
+    "ds-coverage.config.mjs",
+    "ds-coverage.config.cjs",
+    "ds-coverage.config.json",
+    "ds-coverage.config.ts",
+  ];
+
+  for (const name of configFileNames) {
+    try {
+      await access(join(projectRoot, name));
+      configExists = true;
+      break;
+    } catch {
+      // not found
+    }
   }
 
-  log("📐 Initializing DS Coverage AI guidelines...\n");
+  if (!options.noInteractive && !configExists) {
+    // Run interactive wizard
+    const answers = await runWizard();
+    const wizardConfig = buildConfigFromAnswers(answers);
+
+    // Write config file
+    const configContent = serializeConfig(wizardConfig);
+    const configPath = join(projectRoot, "ds-coverage.config.js");
+
+    if (!options.dryRun) {
+      await writeFile(configPath, configContent, "utf-8");
+      log("\n  ✅ ds-coverage.config.js");
+    } else {
+      log("\n  📝 ds-coverage.config.js (dry run)");
+    }
+
+    // Load full config (merge wizard output with defaults)
+    config = await loadConfig(projectRoot);
+    if (options.config) {
+      config = deepMerge(config, options.config);
+    }
+  } else {
+    // Load existing config
+    config = await loadConfig(projectRoot);
+    if (options.config) {
+      config = deepMerge(config, options.config);
+    }
+    log("\n📐 Génération des guidelines AI pour votre design system...\n");
+  }
 
   // Generate content
   const complianceRule = generateComplianceRule(config);
@@ -71,13 +120,13 @@ export async function init(options: InitOptions = {}): Promise<GeneratedFile[]> 
       case "cursor":
         filesToGenerate.push({
           target: "cursor",
-          relativePath: ".cursor/rules/design-system-compliance.md",
+          relativePath: ".cursor/rules/design-system-compliance.mdc",
           content: complianceRule,
         });
         if (componentRule) {
           filesToGenerate.push({
             target: "cursor",
-            relativePath: ".cursor/rules/ui-component-creation.md",
+            relativePath: ".cursor/rules/ui-component-creation.mdc",
             content: componentRule,
           });
         }
@@ -129,7 +178,7 @@ export async function init(options: InitOptions = {}): Promise<GeneratedFile[]> 
         skipped: true,
         reason: "File already exists. Use --force to overwrite.",
       });
-      log(`  ⏭  ${file.relativePath} (skipped — already exists)`);
+      log(`  ⏭  ${file.relativePath} (ignoré — existe déjà)`);
       continue;
     }
 
@@ -140,7 +189,7 @@ export async function init(options: InitOptions = {}): Promise<GeneratedFile[]> 
         content: file.content,
         skipped: false,
       });
-      log(`  📝 ${file.relativePath} (dry run — would create)`);
+      log(`  📝 ${file.relativePath} (dry run — serait créé)`);
       continue;
     }
 
@@ -163,17 +212,63 @@ export async function init(options: InitOptions = {}): Promise<GeneratedFile[]> 
 
   log("");
   if (created.length > 0) {
-    log(`  ${options.dryRun ? "Would create" : "Created"} ${created.length} file(s)`);
+    log(`  ${options.dryRun ? "Serai(en)t créé(s)" : "Créé(s)"}: ${created.length} fichier(s)`);
   }
   if (skipped.length > 0) {
-    log(`  Skipped ${skipped.length} file(s) (use --force to overwrite)`);
+    log(`  Ignoré(s): ${skipped.length} fichier(s) (utilisez --force pour écraser)`);
   }
   log("");
 
+  // Propose to update .gitignore
   if (!options.dryRun && created.length > 0) {
-    log("  💡 These files are generated from your ds-coverage.config.");
-    log("     Re-run `npx ds-coverage init --force` after changing your config.\n");
+    await updateGitignore(projectRoot, log);
+  }
+
+  if (!options.dryRun && created.length > 0) {
+    log("  ─── Et maintenant ? ──────────────────────────────────");
+    log("");
+    log("  💡 Votre assistant Cursor suit maintenant votre design system !");
+    log("");
+    log("  • Éditez ds-coverage.config.js pour ajuster les règles");
+    log("  • Relancez `npx ds-coverage init --force` après modification");
+    log("  • Lancez `npx ds-coverage` pour scanner votre codebase");
+    log("  • Lancez `npx ds-coverage --open` pour ouvrir le dashboard");
+    log("");
   }
 
   return results;
+}
+
+// ============================================
+// GITIGNORE HELPER
+// ============================================
+
+const GITIGNORE_ENTRIES = [
+  "ds-coverage-report.json",
+  "ds-coverage-dashboard.html",
+];
+
+async function updateGitignore(
+  projectRoot: string,
+  log: (...args: unknown[]) => void,
+): Promise<void> {
+  const gitignorePath = join(projectRoot, ".gitignore");
+
+  let existing = "";
+  try {
+    existing = await readFile(gitignorePath, "utf-8");
+  } catch {
+    // No .gitignore — skip
+    return;
+  }
+
+  const linesToAdd = GITIGNORE_ENTRIES.filter(
+    (entry) => !existing.split("\n").some((line) => line.trim() === entry),
+  );
+
+  if (linesToAdd.length === 0) return;
+
+  const block = `\n# ds-coverage (generated output)\n${linesToAdd.join("\n")}\n`;
+  await writeFile(gitignorePath, existing.trimEnd() + "\n" + block, "utf-8");
+  log(`  ✅ .gitignore (ajouté: ${linesToAdd.join(", ")})`);
 }

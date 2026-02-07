@@ -51,6 +51,7 @@ window.__DS_CONFIG__ = {
   locationLabels: ${JSON.stringify(locationLabels)},
   componentAnalysisEnabled: ${config.componentAnalysis.enabled},
   roadmapEnabled: ${config.roadmap.enabled},
+  migrationEnabled: ${config.migration.enabled && config.migration.mappings.length > 0},
   expectedProps: ${JSON.stringify(config.componentAnalysis.api.expectedProps)},
   expectedSizes: ${JSON.stringify(config.componentAnalysis.api.expectedSizes)},
   forbiddenProps: ${JSON.stringify(config.componentAnalysis.api.forbiddenProps)},

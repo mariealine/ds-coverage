@@ -220,6 +220,40 @@
     .loc-badge.legacy, .loc-badge.common { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
     .loc-badge.other { background: var(--bg-base-secondary); color: var(--text-secondary); }
 
+    /* Migration */
+    .mig-section { margin-bottom: var(--space-32); }
+    .mig-section-header { display: flex; align-items: center; gap: var(--space-12); margin-bottom: var(--space-16); padding-bottom: var(--space-8); border-bottom: 2px solid var(--border-default); }
+    .mig-section-badge { display: inline-flex; align-items: center; justify-content: center; padding: var(--space-4) var(--space-12); border-radius: var(--radius-6); font-weight: var(--font-weight-semibold); }
+    .mig-section-badge.simple { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
+    .mig-section-badge.moderate { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
+    .mig-section-badge.complex { background: oklch(0.971 0.013 17.38); color: oklch(0.505 0.213 27.518); }
+    .mig-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-12); transition: border-color 0.15s; }
+    .mig-card:hover { border-color: var(--border-hover); }
+    .mig-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-16); margin-bottom: var(--space-12); }
+    .mig-swap { display: flex; align-items: center; gap: var(--space-8); }
+    .mig-comp-name { font-weight: var(--font-weight-semibold); padding: var(--space-4) var(--space-12); border-radius: var(--radius-6); font-family: var(--font-family-mono); }
+    .mig-comp-name.source { background: oklch(0.971 0.013 17.38); color: oklch(0.505 0.213 27.518); }
+    .mig-comp-name.target { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
+    .mig-arrow { color: var(--text-tertiary); font-size: 18px; }
+    .mig-meta { display: flex; gap: var(--space-16); flex-wrap: wrap; margin-bottom: var(--space-12); }
+    .mig-meta-item { display: flex; align-items: center; gap: var(--space-4); color: var(--text-secondary); }
+    .mig-meta-value { font-weight: var(--font-weight-semibold); color: var(--text-main); }
+    .mig-guidelines { background: var(--bg-base-primary-hover); border-radius: var(--radius-8); padding: var(--space-16); margin-bottom: var(--space-12); }
+    .mig-guidelines-title { text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: var(--space-8); }
+    .mig-guidelines-content { white-space: pre-wrap; line-height: 1.6; }
+    .mig-props { background: var(--bg-base-primary-hover); border-radius: var(--radius-8); padding: var(--space-12) var(--space-16); margin-bottom: var(--space-12); border-left: 3px solid var(--color-info); }
+    .mig-breaking { background: oklch(0.985 0.01 17.38); border-radius: var(--radius-8); padding: var(--space-12) var(--space-16); margin-bottom: var(--space-12); border-left: 3px solid var(--color-danger); }
+    .mig-breaking-item { display: flex; align-items: flex-start; gap: var(--space-6); padding: var(--space-2) 0; }
+    .mig-files-toggle { background: none; border: none; color: var(--color-accent); cursor: pointer; font-family: var(--font-family); padding: 0; }
+    .mig-files-toggle:hover { text-decoration: underline; }
+    .mig-file-list { display: none; margin-top: var(--space-8); }
+    .mig-file-list.open { display: block; }
+    .mig-file-item { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-8); border-radius: var(--radius-4); }
+    .mig-file-item:hover { background: var(--bg-base-primary-hover); }
+    .mig-file-path { font-family: var(--font-family-mono); color: var(--text-primary); }
+    .mig-file-count { color: var(--text-secondary); flex-shrink: 0; }
+    .mig-complexity-filter { display: flex; gap: var(--space-8); }
+
     /* States */
     .empty-state { text-align: center; padding: var(--space-48); color: var(--text-secondary); }
     .empty-state .icon { font-size: 48px; margin-bottom: var(--space-12); }
@@ -248,7 +282,7 @@
 // ============================================
 // Dashboard — reads categories and config from embedded data
 // ============================================
-const CFG = window.__DS_CONFIG__ || { title: 'DS Coverage', subtitle: '', categories: {}, componentAnalysisEnabled: false, roadmapEnabled: false, expectedProps: [], expectedSizes: [], forbiddenProps: [], forbiddenSizes: [] };
+const CFG = window.__DS_CONFIG__ || { title: 'DS Coverage', subtitle: '', categories: {}, componentAnalysisEnabled: false, roadmapEnabled: false, migrationEnabled: false, expectedProps: [], expectedSizes: [], forbiddenProps: [], forbiddenSizes: [] };
 const CATS = CFG.categories;
 const CAT_KEYS = Object.keys(CATS);
 
@@ -270,6 +304,9 @@ let apiLocationFilter = 'all';
 let apiFeatureFilter = null;
 let apiSearchQuery = '';
 const openCompDetails = new Set();
+let migComplexityFilter = 'all';
+let migSearchQuery = '';
+const openMigFiles = new Set();
 
 async function loadReport() {
   if (window.__DS_REPORT__) { report = window.__DS_REPORT__; render(); return; }
@@ -321,6 +358,7 @@ function renderHeader() {
   const s = report.summary;
   const tabs = [{ id: 'metrics', label: 'Metrics — App' }];
   if (CFG.componentAnalysisEnabled) tabs.push({ id: 'tokens', label: 'Metrics — Design System' }, { id: 'api', label: 'Components — API Redesign' });
+  if (CFG.migrationEnabled) tabs.push({ id: 'migration', label: 'Migration Plan' });
   if (CFG.roadmapEnabled) tabs.push({ id: 'roadmap', label: 'Refactoring Roadmap' });
   return `<div class="header"><div><h1>${esc(CFG.title)}</h1><div class="subtitle ts-d-r">${esc(CFG.subtitle)}</div></div><div><span class="timestamp ts-xxs-r">Generated: ${new Date(report.generatedAt).toLocaleString()}</span></div></div><div class="tab-bar">${tabs.map(t => `<button class="tab-btn ts-d-m ${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
 }
@@ -431,6 +469,137 @@ function renderRoadmap() {
   return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Refactoring Roadmap</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Migration phases ordered by impact. Each includes a business case and affected files.</p>${phasesHtml}<h2 class="ts-xl-sb" style="margin-top:var(--space-32);margin-bottom:var(--space-8)">Coverage by Directory</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-16)">Directories sorted by most violations.</p><div class="dir-grid">${dirHtml}</div>`;
 }
 
+function renderMigration() {
+  const mig = report.migration;
+  if (!mig) return '<div class="empty-state"><div class="icon">🔄</div><h2 class="ts-xl-sb">Pas de plan de migration</h2><p class="ts-d-r" style="margin-top:var(--space-8)">Configurez la section <code>migration</code> dans votre ds-coverage.config.js</p></div>';
+  const ms = mig.summary;
+  if (ms.totalMappings === 0) return '<div class="empty-state"><div class="icon">✅</div><h2 class="ts-xl-sb">Aucun composant à migrer</h2></div>';
+
+  // Filter components
+  let components = mig.components;
+  if (migComplexityFilter !== 'all') components = components.filter(c => c.complexity === migComplexityFilter);
+  if (migSearchQuery) { const q = migSearchQuery.toLowerCase(); components = components.filter(c => c.source.toLowerCase().includes(q) || c.target.toLowerCase().includes(q)); }
+
+  // Group by complexity
+  const groups = { simple: [], moderate: [], complex: [] };
+  for (const c of components) groups[c.complexity].push(c);
+
+  const complexityLabels = { simple: '✅ Simple', moderate: '⚠️ Modéré', complex: '🔴 Complexe' };
+  const complexityDescs = {
+    simple: 'Swap direct — API compatible ou quasi-compatible. Changement d\'import + renommage minimal.',
+    moderate: 'Adaptation requise — props à mapper, quelques ajustements de logique.',
+    complex: 'Refactoring significatif — API différente, logique métier à adapter, tests à réécrire.'
+  };
+
+  // Hero stats
+  const heroHtml = `<div class="hero" style="grid-template-columns: 1fr">
+    <div class="hero-stats" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
+      <div class="stat"><div class="stat-value">${ms.totalMappings}</div><div class="stat-label ts-xxs-m">Composants à migrer</div></div>
+      <div class="stat"><div class="stat-value">${ms.totalUsages}</div><div class="stat-label ts-xxs-m">Usages détectés</div></div>
+      <div class="stat"><div class="stat-value">${ms.totalFilesAffected}</div><div class="stat-label ts-xxs-m">Fichiers impactés</div></div>
+      <div class="stat" style="cursor:pointer;${migComplexityFilter==='simple'?'box-shadow:0 0 0 2px var(--color-success);':''}" onclick="setMigFilter('simple')"><div class="stat-value" style="color:var(--color-success)">${ms.byComplexity.simple.count}</div><div class="stat-label ts-xxs-m">Simple</div></div>
+      <div class="stat" style="cursor:pointer;${migComplexityFilter==='moderate'?'box-shadow:0 0 0 2px var(--color-warning);':''}" onclick="setMigFilter('moderate')"><div class="stat-value" style="color:var(--color-warning)">${ms.byComplexity.moderate.count}</div><div class="stat-label ts-xxs-m">Modéré</div></div>
+      <div class="stat" style="cursor:pointer;${migComplexityFilter==='complex'?'box-shadow:0 0 0 2px var(--color-danger);':''}" onclick="setMigFilter('complex')"><div class="stat-value" style="color:var(--color-danger)">${ms.byComplexity.complex.count}</div><div class="stat-label ts-xxs-m">Complexe</div></div>
+    </div>
+  </div>`;
+
+  // Toolbar
+  const toolbarHtml = `<div class="toolbar">
+    <div class="mig-complexity-filter">
+      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='all'?'active':''}" onclick="setMigFilter('all')">Tous (${ms.totalMappings})</button>
+      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='simple'?'active':''}" onclick="setMigFilter('simple')">✅ Simple (${ms.byComplexity.simple.count})</button>
+      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='moderate'?'active':''}" onclick="setMigFilter('moderate')">⚠️ Modéré (${ms.byComplexity.moderate.count})</button>
+      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='complex'?'active':''}" onclick="setMigFilter('complex')">🔴 Complexe (${ms.byComplexity.complex.count})</button>
+    </div>
+    <input class="search-input ts-xs-r" type="text" placeholder="Rechercher un composant..." value="${migSearchQuery}" oninput="onMigSearch(this.value)" style="max-width:280px" />
+  </div>`;
+
+  // Render component cards grouped by complexity
+  let sectionsHtml = '';
+  const orderToRender = migComplexityFilter === 'all' ? ['simple', 'moderate', 'complex'] : [migComplexityFilter];
+
+  for (const level of orderToRender) {
+    const groupComps = groups[level];
+    if (!groupComps || groupComps.length === 0) continue;
+
+    sectionsHtml += `<div class="mig-section">
+      <div class="mig-section-header">
+        <span class="mig-section-badge ${level} ts-xs-m">${complexityLabels[level]}</span>
+        <span class="ts-xs-r" style="color:var(--text-secondary)">${groupComps.length} composant${groupComps.length > 1 ? 's' : ''} — ${complexityDescs[level]}</span>
+      </div>
+      ${groupComps.map(c => renderMigCard(c)).join('')}
+    </div>`;
+  }
+
+  if (components.length === 0) {
+    sectionsHtml = '<div class="empty-state ts-d-r">Aucun composant ne correspond au filtre.</div>';
+  }
+
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Migration Plan → ${esc(mig.targetDS)}</h2>
+    <p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Plan de migration composant par composant. Chaque carte inclut les guidelines, le mapping de props, et les fichiers impactés.</p>
+    ${heroHtml}${toolbarHtml}${sectionsHtml}`;
+}
+
+function renderMigCard(c) {
+  const isOpen = openMigFiles.has(c.source);
+
+  let guidelinesHtml = '';
+  if (c.guidelines) {
+    guidelinesHtml = `<div class="mig-guidelines">
+      <div class="mig-guidelines-title ts-xxs-m">📋 Guidelines de migration</div>
+      <div class="mig-guidelines-content ts-xs-r">${esc(c.guidelines)}</div>
+    </div>`;
+  }
+
+  let propsHtml = '';
+  if (c.propMapping) {
+    propsHtml = `<div class="mig-props">
+      <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">🔀 Mapping de props</div>
+      <div class="ts-xs-r" style="font-family:var(--font-family-mono)">${esc(c.propMapping)}</div>
+    </div>`;
+  }
+
+  let breakingHtml = '';
+  if (c.breakingChanges && c.breakingChanges.length > 0) {
+    breakingHtml = `<div class="mig-breaking">
+      <div class="ts-xxs-m" style="color:var(--color-danger);margin-bottom:var(--space-4)">⚠️ Breaking changes</div>
+      ${c.breakingChanges.map(bc => `<div class="mig-breaking-item ts-xs-r"><span style="color:var(--color-danger)">•</span><span>${esc(bc)}</span></div>`).join('')}
+    </div>`;
+  }
+
+  const filesHtml = c.files.length > 0 ? `<div style="border-top:1px solid var(--border-default);padding-top:var(--space-12)">
+    <button class="mig-files-toggle ts-xs-m" onclick="event.stopPropagation();toggleMigFiles('${c.source.replace(/'/g,"\\'")}')">
+      ${isOpen ? '▾ Masquer les fichiers' : '▸ Voir les fichiers'} (${c.filesAffected})
+    </button>
+    <div class="mig-file-list ${isOpen ? 'open' : ''}">
+      ${c.files.map(f => `<div class="mig-file-item">
+        <span class="mig-file-path ts-xxs-r">${f.path}</span>
+        <span class="mig-file-count ts-xxs-m">${f.totalOccurrences} occurrence${f.totalOccurrences > 1 ? 's' : ''}</span>
+      </div>`).join('')}
+    </div>
+  </div>` : '';
+
+  return `<div class="mig-card">
+    <div class="mig-card-header">
+      <div class="mig-swap">
+        <span class="mig-comp-name source ts-xs-m">${esc(c.source)}</span>
+        <span class="mig-arrow">→</span>
+        <span class="mig-comp-name target ts-xs-m">${esc(c.target)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:var(--space-12)">
+        ${c.effort ? `<span class="ts-xxs-m" style="color:var(--text-secondary)">⏱ ${esc(c.effort)}</span>` : ''}
+        <span class="mig-section-badge ${c.complexity} ts-xxs-m">${c.complexity}</span>
+      </div>
+    </div>
+    <div class="mig-meta">
+      <div class="mig-meta-item ts-xxs-r"><span class="mig-meta-value">${c.totalUsages}</span> usages</div>
+      <div class="mig-meta-item ts-xxs-r"><span class="mig-meta-value">${c.filesAffected}</span> fichiers</div>
+      <div class="mig-meta-item ts-xxs-r" style="font-family:var(--font-family-mono)">→ ${esc(c.targetImportPath)}</div>
+    </div>
+    ${guidelinesHtml}${propsHtml}${breakingHtml}${filesHtml}
+  </div>`;
+}
+
 function render() {
   let html = renderHeader();
   html += `<div class="tab-content ${activeTab==='metrics'?'active':''}">${renderMetrics()}</div>`;
@@ -438,6 +607,7 @@ function render() {
     html += `<div class="tab-content ${activeTab==='tokens'?'active':''}">${renderTokens()}</div>`;
     html += `<div class="tab-content ${activeTab==='api'?'active':''}">${renderApiRework()}</div>`;
   }
+  if (CFG.migrationEnabled) html += `<div class="tab-content ${activeTab==='migration'?'active':''}">${renderMigration()}</div>`;
   if (CFG.roadmapEnabled) html += `<div class="tab-content ${activeTab==='roadmap'?'active':''}">${renderRoadmap()}</div>`;
   document.getElementById('app').innerHTML = html;
   if (activeTab === 'metrics' && detailFile) showDetail(detailFile);
@@ -456,6 +626,9 @@ function setApiFeatureFilter(f) { apiFeatureFilter = apiFeatureFilter === f ? nu
 function onApiSearch(v) { apiSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
 function toggleCompDetail(p) { if (openCompDetails.has(p)) openCompDetails.delete(p); else openCompDetails.add(p); render(); }
 function togglePhaseFiles(id) { if (openPhases.has(id)) openPhases.delete(id); else openPhases.add(id); render(); }
+function setMigFilter(level) { migComplexityFilter = migComplexityFilter === level ? 'all' : level; render(); }
+function onMigSearch(v) { migSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
+function toggleMigFiles(src) { if (openMigFiles.has(src)) openMigFiles.delete(src); else openMigFiles.add(src); render(); }
 
 function showDetail(filePath) {
   detailFile = filePath;

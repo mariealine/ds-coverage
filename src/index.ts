@@ -9,9 +9,11 @@ import { writeFile } from "node:fs/promises";
 import { loadConfig, deepMerge } from "./config.js";
 import type { DsCoverageConfig } from "./config.js";
 import { scan, buildCategorySummary } from "./scanner.js";
+export { scan, buildCategorySummary } from "./scanner.js";
 import { analyzeComponents } from "./component-analyzer.js";
 import { buildRoadmap } from "./roadmap-builder.js";
 import { buildDashboard } from "./dashboard-builder.js";
+import { analyzeMigration } from "./migration-analyzer.js";
 import type { Report } from "./types.js";
 
 export type { DsCoverageConfig } from "./config.js";
@@ -19,6 +21,8 @@ export type { Report } from "./types.js";
 export { DEFAULT_CONFIG } from "./config.js";
 export { init } from "./init.js";
 export type { InitOptions } from "./init.js";
+export { runWizard, buildConfigFromAnswers, serializeConfig } from "./wizard.js";
+export type { WizardAnswers } from "./wizard.js";
 
 export interface RunOptions {
   /** Project root directory (defaults to cwd) */
@@ -53,17 +57,27 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   const scanDir = join(projectRoot, config.scanDir);
   const log = options.silent ? () => {} : console.log;
 
-  log("🔍 Scanning design system coverage...\n");
+  // Check if config has violations defined
+  const enabledViolations = Object.entries(config.violations).filter(([, v]) => v.enabled);
+  if (enabledViolations.length === 0) {
+    log("⚠️  Aucune catégorie de violation configurée.");
+    log("   Lancez `npx ds-coverage init` pour configurer votre projet.\n");
+  }
+
+  log("🔍 Scan de la couverture design system...\n");
 
   // 1. Scan files
   const { fileReports, fileContents, totalFiles } = await scan(projectRoot, config);
-  log(`  Found ${totalFiles} files, scanned ${fileReports.length} (after exclusions)\n`);
+  log(`  ${totalFiles} fichiers trouvés, ${fileReports.length} scannés (après exclusions)\n`);
 
   // 2. Analyze component APIs
   const componentApi = analyzeComponents(fileReports, fileContents, scanDir, config);
 
   // 3. Build roadmap
   const roadmap = buildRoadmap(fileReports, config);
+
+  // 3b. Analyze migration (if enabled)
+  const migration = analyzeMigration(fileContents, scanDir, config);
 
   // 4. Build summary
   const filesWithViolations = fileReports.filter((f) => f.totalViolations > 0);
@@ -100,6 +114,7 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
     },
     roadmap,
     componentApi,
+    migration,
     files: fileReports
       .filter((f) => f.totalViolations > 0 || f.totalFlags > 0)
       .sort((a, b) => b.totalViolations - a.totalViolations),
@@ -118,17 +133,21 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   }
 
   // 7. Print summary
-  log("📊 Design System Coverage Report");
-  log("================================\n");
-  log(`  Coverage:        ${coveragePercent}% (${fileReports.length - filesWithViolations.length}/${fileReports.length} files compliant)`);
+  log("📊 Rapport de couverture Design System");
+  log("======================================\n");
+  log(`  Couverture:       ${coveragePercent}% (${fileReports.length - filesWithViolations.length}/${fileReports.length} fichiers conformes)`);
   log(`  Total violations: ${totalViolations}`);
-  log(`  Files affected:   ${filesWithViolations.length}\n`);
-  log("  By category:");
-  for (const [key, cat] of Object.entries(categories)) {
-    const label = config.violations[key]?.label || key;
-    log(`    ${label.padEnd(14)} ${cat.totalViolations} violations in ${cat.totalFiles} files`);
+  log(`  Fichiers touchés: ${filesWithViolations.length}\n`);
+
+  if (Object.keys(categories).length > 0) {
+    log("  Par catégorie:");
+    for (const [key, cat] of Object.entries(categories)) {
+      const label = config.violations[key]?.label || key;
+      log(`    ${label.padEnd(14)} ${cat.totalViolations} violations dans ${cat.totalFiles} fichiers`);
+    }
+    log("");
   }
-  log("");
+
   log("  Flags:");
   log(`    @ds-migrate: simple  → ${report.summary.flags.migrateSimple}`);
   log(`    @ds-migrate: complex → ${report.summary.flags.migrateComplex}`);
@@ -137,16 +156,27 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
   if (config.componentAnalysis.enabled) {
     const ca = componentApi.summary;
     log("");
-    log("  Component API:");
-    log(`    Total:         ${ca.totalComponents} (${Object.entries(ca.byLocation).map(([k, v]) => `${v} ${k}/`).join(", ")})`);
-    log(`    Uses CVA:      ${ca.usesCVA}`);
-    log(`    Correct API:   ${ca.correctApiNaming}`);
-    log(`    Avg compliance: ${ca.avgComplianceScore}%`);
+    log("  Composants API:");
+    log(`    Total:          ${ca.totalComponents} (${Object.entries(ca.byLocation).map(([k, v]) => `${v} ${k}/`).join(", ")})`);
+    if (ca.usesCVA > 0) log(`    Utilise CVA:    ${ca.usesCVA}`);
+    log(`    API correcte:   ${ca.correctApiNaming}`);
+    log(`    Conformité moy: ${ca.avgComplianceScore}%`);
+  }
+
+  if (migration && migration.summary.totalMappings > 0) {
+    const ms = migration.summary;
+    log("");
+    log(`  Migration → ${migration.targetDS}:`);
+    log(`    Composants à migrer: ${ms.totalMappings}`);
+    log(`    Usages détectés:     ${ms.totalUsages} dans ${ms.totalFilesAffected} fichiers`);
+    if (ms.byComplexity.simple.count > 0) log(`    ✅ Simple:   ${ms.byComplexity.simple.count} composants (${ms.byComplexity.simple.usages} usages)`);
+    if (ms.byComplexity.moderate.count > 0) log(`    ⚠️  Modéré:   ${ms.byComplexity.moderate.count} composants (${ms.byComplexity.moderate.usages} usages)`);
+    if (ms.byComplexity.complex.count > 0) log(`    🔴 Complexe: ${ms.byComplexity.complex.count} composants (${ms.byComplexity.complex.usages} usages)`);
   }
 
   if (!options.dryRun) {
-    log(`\n  Report:    ${relative(projectRoot, reportJsonPath)}`);
-    log(`  Dashboard: ${relative(projectRoot, dashboardPath)}\n`);
+    log(`\n  Rapport:    ${relative(projectRoot, reportJsonPath)}`);
+    log(`  Dashboard:  ${relative(projectRoot, dashboardPath)}\n`);
   }
 
   return { report, dashboardHtml, reportJsonPath, dashboardPath };

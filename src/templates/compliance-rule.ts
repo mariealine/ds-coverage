@@ -4,6 +4,8 @@
  * Generates a markdown rule file for AI assistants (Cursor, Claude, Agents)
  * based on the ds-coverage config. This ensures the AI enforces the same
  * rules the scanner detects.
+ *
+ * Fully agnostic — works with any CSS methodology and framework.
  */
 
 import type { DsCoverageConfig } from "../config.js";
@@ -12,17 +14,202 @@ export function generateComplianceRule(config: DsCoverageConfig): string {
   const api = config.componentAnalysis.api;
   const primaryDir = config.componentAnalysis.primaryDirectory;
   const legacyDirs = config.componentAnalysis.legacyDirectories;
+  const hasComponentAnalysis = config.componentAnalysis.enabled;
 
-  // Build violation checklist from config
-  const violationChecklist = Object.entries(config.violations)
-    .filter(([, v]) => v.enabled)
-    .map(([key, v]) => {
-      const examples = getViolationExamples(key);
-      return `- **${v.label}** ${v.icon} — ${examples.forbidden}. ${examples.instruction}`;
-    })
+  // Build violation checklist from config (dynamic — no hardcoded examples)
+  const enabledViolations = Object.entries(config.violations).filter(([, v]) => v.enabled);
+
+  const violationChecklist = enabledViolations
+    .map(([, v]) => `- **${v.label}** ${v.icon} — Interdit de hardcoder. Utiliser les design tokens sémantiques.`)
     .join("\n");
 
-  // Build size table — expected values + forbidden values listed separately
+  // Build prop section only if component analysis is enabled
+  const propSection = hasComponentAnalysis
+    ? buildPropSection(config)
+    : "";
+
+  // Build size section only if sizes are defined
+  const sizeSection =
+    hasComponentAnalysis && api.expectedSizes.length > 0
+      ? buildSizeSection(config)
+      : "";
+
+  const forbiddenPropsNote =
+    hasComponentAnalysis && api.forbiddenProps.length > 0
+      ? `\n\n**Noms de props interdits** (legacy) : ${api.forbiddenProps.map((p) => `\`${p}\``).join(", ")}. Doivent être migrés vers les noms ci-dessus.`
+      : "";
+
+  // Build component decision hierarchy only if component analysis is enabled
+  const componentHierarchy = hasComponentAnalysis
+    ? buildComponentHierarchy(config)
+    : "";
+
+  // Build non-compliant section from actual config
+  const nonCompliantList = enabledViolations
+    .map(([, v]) => `- ${v.icon} **${v.label}** : Valeurs hardcodées détectées par le scanner`)
+    .join("\n");
+
+  return `---
+description: Design system compliance protocol — applies to all frontend work
+globs: ${config.scanDir}/**/*
+---
+
+# Protocole de conformité Design System
+
+## S'applique à
+Tout le travail frontend dans \`${config.scanDir}/\`.
+
+## Règle
+
+Cette règle définit le **cadre de décision** pour construire l'UI. Elle assure la consistance visuelle via la réutilisation de composants, le flagging systématique, et le refactoring incrémental.
+
+> **Cette règle est auto-générée par ds-coverage.** Elle reste synchronisée avec la config du scanner pour que l'assistant AI applique les mêmes règles que le scanner détecte.
+
+---
+
+## CRITIQUE — Exigences pour le nouveau code
+
+**Chaque ligne de code frontend DOIT être conforme au design system dès le départ.** C'est non-négociable — tolérance zéro pour l'introduction de nouvelle dette design.
+
+Avant d'écrire du code UI, vérifier :
+${violationChecklist}
+${hasComponentAnalysis ? `- **Composants** → Un composant existe-t-il déjà dans \`${primaryDir}\` ? **L'utiliser.** ${legacyDirs.length > 0 ? `Vérifier aussi les répertoires legacy (${legacyDirs.map((d) => `\`${d}\``).join(", ")}) — mais les nouveaux composants DOIVENT aller dans \`${primaryDir}\`.` : ""}` : ""}
+
+**Si cette règle n'est pas respectée, le code doit être rejeté.**
+
+---
+${componentHierarchy}
+${propSection}${forbiddenPropsNote}
+${sizeSection}
+
+---
+
+## Conventions de flagging
+
+Trois types de flags pour annoter le code :
+
+### \`@ds-migrate: simple\`
+Un swap direct. Peut être fait inline par n'importe quel développeur ou assistant AI.
+
+\`\`\`
+// @ds-migrate: simple | Remplacer la valeur hardcodée par un token sémantique
+\`\`\`
+
+### \`@ds-migrate: complex\`
+Une migration qui nécessite un effort dédié. Inclure : quoi migrer, risques, estimation de coût, et contraintes.
+
+\`\`\`
+// @ds-migrate: complex | Ce composant custom devrait utiliser le composant DS.
+// Risques : La logique de navigation clavier custom pourrait confliter.
+// Coût : ~2h de refacto, vérifier tous les usages.
+\`\`\`
+
+### \`@ds-todo\`
+Un composant ou token manquant qui devrait être ajouté au design system.
+
+\`\`\`
+// @ds-todo: Créer <NomComposant> — rationale
+\`\`\`
+
+---
+
+## Protocole Boy Scout Rule
+
+Quand vous éditez un fichier dans \`${config.scanDir}/\` :
+
+1. **Scanner le code que vous touchez** (la fonction, le composant, le bloc que vous modifiez)
+2. **Appliquer les migrations non-ambiguës immédiatement** : swaps 1:1 de tokens avec un match sémantique clair
+3. **Quand plusieurs tokens sémantiques pourraient correspondre**, **proposer les options au développeur** avec du contexte expliquant la signification sémantique de chaque candidat. Fournir du contexte visuel quand possible :
+   - **(a) Prendre un screenshot** via les outils navigateur si disponibles
+   - **(b) Demander un screenshot au développeur**, en donnant le chemin de navigation
+   - **(c) Décrire visuellement** à quoi le composant ressemble en dernier recours
+4. **Flagger les migrations complexes** : Ne pas refactorer silencieusement de gros patterns — ajouter \`@ds-migrate: complex\`
+5. **Flagger les composants manquants** : Si vous repérez un pattern répété, ajouter \`@ds-todo\`
+6. **Ne jamais casser le comportement existant** : Les migrations doivent être visuelles uniquement. Même look, mêmes interactions.
+
+---
+
+## Ce qui est "non-conforme"
+
+N'importe lequel de ces éléments dans du code que vous éditez doit être flaggé ou corrigé :
+
+${nonCompliantList}
+${hasComponentAnalysis ? `- Éléments HTML natifs (\`<button>\`, \`<input>\`, \`<select>\`) quand un composant UI existe\n- Patterns UI dupliqués qui devraient être un composant` : ""}
+${hasComponentAnalysis && api.forbiddenProps.length > 0 ? api.forbiddenProps.map((p) => `- Nom de prop legacy \`${p}\``).join("\n") : ""}
+${hasComponentAnalysis && api.forbiddenSizes.length > 0 ? `- Valeurs de taille legacy : ${api.forbiddenSizes.map((s) => `\`${s}\``).join(", ")}` : ""}
+
+---
+
+## Workflow de refactoring
+
+Pour les sessions de refactoring dédiées :
+
+1. **Trouver les flags** : Chercher \`@ds-migrate\` et \`@ds-todo\` dans la codebase
+2. **Lancer le scanner** : \`npx ds-coverage\` — ouvrir le dashboard pour voir les violations
+3. **Prioriser** :
+   - \`@ds-migrate: simple\` → batch and apply (quick wins)
+   - \`@ds-todo\` → créer les composants DS manquants
+   - \`@ds-migrate: complex\` → planifier comme tâches dédiées
+4. **Vérifier** : Après migration, tester visuellement
+5. **Nettoyer** : Supprimer le commentaire de flag après la migration
+6. **Re-scanner** : Relancer \`npx ds-coverage\` pour vérifier les améliorations
+`;
+}
+
+// ============================================
+// SECTION BUILDERS
+// ============================================
+
+function buildComponentHierarchy(config: DsCoverageConfig): string {
+  const primaryDir = config.componentAnalysis.primaryDirectory;
+  const legacyDirs = config.componentAnalysis.legacyDirectories;
+  const api = config.componentAnalysis.api;
+
+  const architectureNote = api.requireCVA
+    ? "- Utiliser CVA pour les variants\n"
+    : "";
+
+  return `
+## Hiérarchie de décision (suivre dans l'ordre)
+
+### 1. Utiliser un composant UI existant
+Vérifier \`${primaryDir}\` en premier. Si un composant existe qui correspond au besoin, **l'utiliser**. Ne pas recréer buttons, badges, inputs, dialogs, selects, etc.
+${legacyDirs.length > 0 ? `\n> **Note :** Certains composants vivent encore dans des répertoires legacy (${legacyDirs.map((d) => `\`${d}\``).join(", ")}). Vérifier là aussi, mais les nouveaux composants vont toujours dans \`${primaryDir}\`.` : ""}
+
+### 2. Créer un nouveau composant UI
+Si aucun composant existant ne convient, en créer un dans \`${primaryDir}\`. Le composant DOIT :
+${architectureNote}- Utiliser exclusivement des design tokens sémantiques
+- Avoir un nom simple et concis (1-2 mots)
+- Suivre les conventions de props ci-dessous
+
+### 3. Dernier recours : code inline avec tokens
+Si vous avez besoin d'un layout one-off qui ne justifie pas un composant, vous pouvez écrire du code inline — mais vous DEVEZ utiliser des tokens sémantiques. Flagger si le pattern pourrait être réutilisable :
+
+\`\`\`
+// @ds-todo: Envisager la création d'un composant si ce pattern se répète
+\`\`\`
+`;
+}
+
+function buildPropSection(config: DsCoverageConfig): string {
+  const api = config.componentAnalysis.api;
+
+  if (api.expectedProps.length === 0) return "";
+
+  return `
+---
+
+## Conventions de nommage des props
+
+Tous les composants du design system utilisent ces **noms de props standardisés** :
+
+### Props de variant attendues : ${api.expectedProps.map((p) => `\`${p}\``).join(", ")}
+`;
+}
+
+function buildSizeSection(config: DsCoverageConfig): string {
+  const api = config.componentAnalysis.api;
+
   const sizeTable = api.expectedSizes
     .map((size) => `| \`${size}\` |`)
     .join("\n");
@@ -31,187 +218,11 @@ export function generateComplianceRule(config: DsCoverageConfig): string {
     ? api.forbiddenSizes.map((s) => `\`${s}\``).join(", ")
     : "";
 
-  // Build prop naming table
-  const forbiddenPropsNote = api.forbiddenProps.length > 0
-    ? `\n\n**Forbidden prop names** (legacy): ${api.forbiddenProps.map((p) => `\`${p}\``).join(", ")}. These must be migrated to the correct names above.`
-    : "";
-
-  return `# Design System Compliance Protocol
-
-## Applies to
-All frontend work in \`${config.scanDir}/\`.
-
-## Rule
-
-This rule defines the **decision framework** for building UI. It ensures design consistency through component reuse, systematic flagging, and incremental refactoring.
-
-> **This rule is auto-generated by ds-coverage.** It stays in sync with the scanner config so AI assistants enforce the same rules the scanner detects.
-
----
-
-## CRITICAL — New code requirements
-
-**Every line of new frontend code MUST be design-system compliant from the start.** This is not optional — there is zero tolerance for introducing new design debt.
-
-Before writing ANY UI code, check:
-${violationChecklist}
-- **Components** → Does a component already exist in \`${primaryDir}\`? **Use it.** ${legacyDirs.length > 0 ? `Also check legacy directories (${legacyDirs.map((d) => `\`${d}\``).join(", ")}) — but new components MUST go in \`${primaryDir}\`.` : ""}
-
-**If this rule is not followed, the code must be rejected.**
-
----
-
-## Decision hierarchy (follow in order)
-
-### 1. Use an existing UI component
-Check \`${primaryDir}\` first. If a component exists that matches your need, **use it**. Do not recreate buttons, badges, inputs, dialogs, selects, etc.
-${legacyDirs.length > 0 ? `\n> **Note:** Some components still live in legacy directories (${legacyDirs.map((d) => `\`${d}\``).join(", ")}). Check there too, but new components always go in \`${primaryDir}\`.` : ""}
-
-### 2. Create a new UI component
-If no existing component fits, create one in \`${primaryDir}\`. The component MUST:
-- Use CVA for variants
-- Use semantic design tokens exclusively
-- Have a simple, concise name (1-2 words)
-- Follow the prop naming conventions below
-
-### 3. Last resort: inline code with tokens
-If you need a one-off layout that doesn't warrant a component, you may write inline CSS/utility classes — but you MUST use semantic tokens. Flag it if the pattern might be reusable:
-
-\`\`\`tsx
-// @ds-todo: Consider creating a <StatusDot> component if this pattern repeats
-<span className="inline-block size-2 rounded-full bg-success-primary" />
-\`\`\`
-
----
-
-## Prop naming conventions
-
-All design system components use these **standardized prop names**:
-
-### Expected variant props: ${api.expectedProps.map((p) => `\`${p}\``).join(", ")}${forbiddenPropsNote}
-
-### \`size\` prop — full words only
-| Accepted values |
-|-----------------|
+  return `
+### Prop \`size\` — valeurs attendues
+| Valeurs acceptées |
+|-------------------|
 ${sizeTable}
-${forbiddenSizesList ? `\n**Forbidden** (legacy abbreviations): ${forbiddenSizesList}` : ""}
-
-${api.legacyVariantValues.length > 0 ? `### Legacy variant values to migrate\n${api.legacyVariantValues.map((v) => `- \`${v}\` → use the appropriate semantic equivalent`).join("\n")}` : ""}
-
----
-
-## Flagging conventions
-
-Three types of flags to annotate code:
-
-### \`@ds-migrate: simple\`
-A straightforward swap. Can be done inline by any developer or AI assistant.
-
-\`\`\`tsx
-// @ds-migrate: simple | Replace hardcoded color with semantic token
-\`\`\`
-
-### \`@ds-migrate: complex\`
-A migration that requires dedicated effort. Include: what to migrate, risks, cost estimate, and constraints.
-
-\`\`\`tsx
-// @ds-migrate: complex | This custom dropdown should use <Select> from UI kit.
-// Risks: Custom keyboard navigation logic may conflict.
-// Cost: ~2h refactor, need to verify all usages.
-\`\`\`
-
-### \`@ds-todo\`
-A missing component or token that should be added to the design system.
-
-\`\`\`tsx
-// @ds-todo: Create <Chip> component — used here and in 3 other places for removable filter tags
-\`\`\`
-
----
-
-## Boy Scout Rule protocol
-
-When editing any file in \`${config.scanDir}/\`:
-
-1. **Scan the code you touch** (the function, the component, the block you're modifying)
-2. **Apply unambiguous migrations immediately**: 1:1 token swaps that have a clear semantic match
-3. **When multiple semantic tokens could match**, **suggest the options to the developer** with context explaining the semantic meaning of each candidate. Provide visual context when possible:
-   - **(a) Take a screenshot** via browser tools if available
-   - **(b) Ask the developer for a screenshot**, providing the navigation path
-   - **(c) Describe visually** what the component looks like as a last resort
-4. **Flag complex migrations**: Don't silently refactor large patterns — add \`@ds-migrate: complex\`
-5. **Flag missing components**: If you spot a repeated pattern, add \`@ds-todo\`
-6. **Never break existing behavior**: Migrations must be visual-only. Same look, same interactions.
-
----
-
-## What counts as "non-compliant"
-
-Any of these in code you're editing should be flagged or fixed:
-
-${Object.entries(config.violations)
-    .filter(([, v]) => v.enabled)
-    .map(([key, v]) => `- ${v.icon} **${v.label}**: ${getViolationDescription(key)}`)
-    .join("\n")}
-- Hardcoded \`<button>\`, \`<input>\`, \`<select>\` when a UI component exists
-- Duplicated UI patterns that should be a component
-${api.forbiddenProps.length > 0 ? api.forbiddenProps.map((p) => `- Legacy prop name \`${p}\``).join("\n") : ""}
-${api.forbiddenSizes.length > 0 ? `- Legacy size values: ${api.forbiddenSizes.map((s) => `\`${s}\``).join(", ")}` : ""}
-
----
-
-## Refactoring workflow
-
-For dedicated refactoring sessions:
-
-1. **Find flags**: Search codebase for \`@ds-migrate\` and \`@ds-todo\` comments
-2. **Run the scanner**: \`npx ds-coverage\` — open the dashboard to see violations
-3. **Prioritize**:
-   - \`@ds-migrate: simple\` → batch and apply (quick wins)
-   - \`@ds-todo\` → create missing DS components
-   - \`@ds-migrate: complex\` → plan as dedicated tasks
-4. **Verify**: After migration, test visually
-5. **Clean up**: Remove the flag comment after the migration is done
-6. **Re-scan**: Run \`npx ds-coverage\` again to verify improvements
+${forbiddenSizesList ? `\n**Interdites** (abréviations legacy) : ${forbiddenSizesList}` : ""}
 `;
-}
-
-function getViolationExamples(key: string): { forbidden: string; instruction: string } {
-  const examples: Record<string, { forbidden: string; instruction: string }> = {
-    hardcodedColors: {
-      forbidden: "**NEVER** use `text-gray-*`, `bg-blue-*`, `border-red-*`, `text-white`, `bg-white`",
-      instruction: "Use semantic color tokens instead.",
-    },
-    hardcodedTypography: {
-      forbidden: "**NEVER** combine `text-sm` + `font-medium` separately",
-      instruction: "Use unified typescale classes (e.g. `typescale-default-medium`).",
-    },
-    hardcodedRadius: {
-      forbidden: "**NEVER** use `rounded-sm`, `rounded-md`, `rounded-lg`",
-      instruction: "Use numeric radius tokens (e.g. `rounded-4`, `rounded-8`).",
-    },
-    hardcodedShadows: {
-      forbidden: "**NEVER** use `shadow-sm`, `shadow-md`, `shadow-lg`",
-      instruction: "Use named shadow tokens instead.",
-    },
-    darkMode: {
-      forbidden: "**NEVER** use `dark:` prefix",
-      instruction: "Dark mode is handled via semantic tokens — no `dark:` classes needed.",
-    },
-  };
-  return examples[key] || {
-    forbidden: "Avoid hardcoded values",
-    instruction: "Use semantic design tokens instead.",
-  };
-}
-
-function getViolationDescription(key: string): string {
-  const descriptions: Record<string, string> = {
-    hardcodedColors: "Raw color palette classes (`text-gray-*`, `bg-blue-*`, `border-red-*`, `text-white`, `bg-white`)",
-    hardcodedTypography: "Raw font size/weight classes (`text-sm`, `font-medium`, `text-xl font-bold`)",
-    hardcodedRadius: "Hardcoded border-radius (`rounded-lg`, `rounded-xl`, `rounded-2xl`)",
-    hardcodedShadows: "Hardcoded shadows (`shadow-sm`, `shadow-lg`, `shadow-inner`)",
-    darkMode: "`dark:` prefixed classes (`dark:bg-gray-900`, `dark:text-white`)",
-  };
-  return descriptions[key] || "Hardcoded values detected by the scanner";
 }

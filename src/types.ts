@@ -120,6 +120,86 @@ export interface ComponentApiSummary {
 }
 
 // ============================================
+// MIGRATION TYPES
+// ============================================
+
+export type MigrationComplexity = "simple" | "moderate" | "complex";
+
+export interface MigrationMapping {
+  /** Source component name (what's currently used) */
+  source: string;
+  /** Import path or pattern used to detect source usage */
+  sourceImportPattern: string;
+  /** Target component name (what to migrate to) */
+  target: string;
+  /** Target import path */
+  targetImportPath: string;
+  /** Migration difficulty */
+  complexity: MigrationComplexity;
+  /** Migration guidelines — step-by-step instructions */
+  guidelines: string;
+  /** Prop mapping notes (e.g. "variant → appearance, intent → hierarchy") */
+  propMapping?: string;
+  /** Breaking changes to watch for */
+  breakingChanges?: string[];
+  /** Estimated effort (e.g. "~30min", "~2h") */
+  effort?: string;
+}
+
+export interface MigrationComponentReport {
+  /** Source component name */
+  source: string;
+  /** Target component name */
+  target: string;
+  /** Target import path */
+  targetImportPath: string;
+  /** Complexity level */
+  complexity: MigrationComplexity;
+  /** Guidelines text */
+  guidelines: string;
+  /** Prop mapping notes */
+  propMapping?: string;
+  /** Breaking changes */
+  breakingChanges: string[];
+  /** Estimated effort */
+  effort?: string;
+  /** Number of total usages found (imports + JSX usage) */
+  totalUsages: number;
+  /** Number of files affected */
+  filesAffected: number;
+  /** Files with usage details */
+  files: MigrationFileUsage[];
+}
+
+export interface MigrationFileUsage {
+  path: string;
+  /** Lines where import is found */
+  importLines: number[];
+  /** Lines where component is used (JSX/template) */
+  usageLines: number[];
+  /** Total occurrences in this file */
+  totalOccurrences: number;
+}
+
+export interface MigrationReport {
+  /** Target design system name */
+  targetDS: string;
+  /** Summary stats */
+  summary: {
+    totalMappings: number;
+    totalUsages: number;
+    totalFilesAffected: number;
+    byComplexity: Record<MigrationComplexity, {
+      count: number;
+      usages: number;
+      files: number;
+    }>;
+  };
+  /** Component-level migration details */
+  components: MigrationComponentReport[];
+}
+
+// ============================================
 // REPORT TYPE
 // ============================================
 
@@ -145,5 +225,6 @@ export interface Report {
     summary: ComponentApiSummary;
     components: ComponentApiReport[];
   };
+  migration: MigrationReport | null;
   files: FileReport[];
 }

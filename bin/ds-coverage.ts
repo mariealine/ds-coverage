@@ -3,7 +3,7 @@
  *
  * Usage:
  *   npx ds-coverage              # Scan and generate dashboard
- *   npx ds-coverage init         # Scaffold AI guidelines (rules + skills)
+ *   npx ds-coverage init         # Interactive wizard + scaffold AI guidelines
  *   npx ds-coverage --dry-run    # Scan without writing files
  *   npx ds-coverage --silent     # No console output
  *   npx ds-coverage --open       # Open dashboard in browser after scan
@@ -15,6 +15,11 @@ import { run, init } from "../src/index.js";
 const args = process.argv.slice(2);
 const command = args[0] && !args[0].startsWith("-") ? args[0] : "scan";
 
+if (args.includes("--version") || args.includes("-v")) {
+  console.log("ds-coverage 0.1.0");
+  process.exit(0);
+}
+
 if (args.includes("--help") || args.includes("-h")) {
   console.log(`
   ds-coverage — Design System Coverage Scanner & AI Guidelines
@@ -24,7 +29,8 @@ if (args.includes("--help") || args.includes("-h")) {
 
   Commands:
     scan (default)   Scan codebase and generate dashboard
-    init             Scaffold AI guidelines (Cursor rules, Claude/Agents skills)
+    init             Interactive setup wizard + scaffold AI guidelines
+                     (Cursor rules & skills, Claude/Agents skills)
 
   Scan options:
     --dry-run        Scan without writing report/dashboard files
@@ -33,20 +39,24 @@ if (args.includes("--help") || args.includes("-h")) {
     --dir <path>     Project root directory (default: cwd)
 
   Init options:
-    --force          Overwrite existing files
-    --dry-run        Show what would be created without writing
-    --target <name>  Only generate for specific target (cursor, claude, agents)
-                     Can be repeated: --target cursor --target claude
-    --dir <path>     Project root directory (default: cwd)
+    --force              Overwrite existing files
+    --dry-run            Show what would be created without writing
+    --no-interactive     Skip wizard (use existing config or defaults)
+    --target <name>      Only generate for specific target (cursor, claude, agents)
+                         Can be repeated: --target cursor --target claude
+    --dir <path>         Project root directory (default: cwd)
 
   General:
     -h, --help       Show this help message
 
   Configuration:
-    Create a ds-coverage.config.js (or .ts, .mjs, .json) at your project root.
-    All options have sensible defaults for React + Tailwind projects.
+    Run \`npx ds-coverage init\` to launch the interactive setup wizard.
+    It will guide you through configuration and generate:
+    - ds-coverage.config.js (your config file)
+    - .cursor/rules/ (AI rules for Cursor)
+    - .cursor/skills/ (AI skills for Cursor)
 
-    The generated AI guidelines are derived from your config, ensuring
+    All patterns and rules are derived from your config, ensuring
     that scanner rules and AI assistant behavior stay in sync.
   `);
   process.exit(0);
@@ -67,6 +77,7 @@ async function main() {
     if (command === "init") {
       // Parse init-specific options
       const force = args.includes("--force");
+      const noInteractive = args.includes("--no-interactive");
       const targets: Array<"cursor" | "claude" | "agents"> = [];
       let i = 0;
       while (i < args.length) {
@@ -86,6 +97,7 @@ async function main() {
         dryRun,
         silent,
         force,
+        noInteractive,
         targets: targets.length > 0 ? targets : undefined,
       });
     } else {
@@ -105,7 +117,18 @@ async function main() {
       }
     }
   } catch (err) {
-    console.error(`❌ DS Coverage ${command} failed:`, err);
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`\n❌ ds-coverage ${command} failed:\n`);
+    console.error(`   ${message}\n`);
+
+    // Helpful hints based on common errors
+    if (message.includes("does not exist")) {
+      console.error("   💡 Check that your scanDir is correct in ds-coverage.config.js");
+      console.error("   💡 Or run `npx ds-coverage init` to create a config.\n");
+    } else if (message.includes("config")) {
+      console.error("   💡 Run `npx ds-coverage init` to create or fix your config.\n");
+    }
+
     process.exit(1);
   }
 }

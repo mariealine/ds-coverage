@@ -1,8 +1,9 @@
 /**
  * DS Coverage — Configuration
  *
- * Defines the config schema and provides sensible defaults
- * for React + Tailwind projects.
+ * Defines the config schema and provides minimal, agnostic defaults.
+ * Stack-specific patterns are provided by presets (see presets.ts)
+ * and applied via the interactive wizard (`npx ds-coverage init`).
  */
 
 import { readFileSync } from "node:fs";
@@ -39,13 +40,13 @@ export interface ComponentApiConfig {
   api: {
     requireCVA: boolean;
     requireRadix: boolean;
-    /** Expected variant prop names (e.g. ['appearance', 'hierarchy', 'size']) */
+    /** Expected variant prop names (e.g. ['variant', 'size']) */
     expectedProps: string[];
-    /** Forbidden prop names that indicate legacy code (e.g. ['variant', 'intent']) */
+    /** Forbidden prop names that indicate legacy code */
     forbiddenProps: string[];
-    /** Expected size values (full words) */
+    /** Expected size values */
     expectedSizes: string[];
-    /** Forbidden size values (abbreviations) */
+    /** Forbidden size values */
     forbiddenSizes: string[];
     /** Legacy variant values to flag */
     legacyVariantValues: string[];
@@ -106,6 +107,25 @@ export interface DsCoverageConfig {
     }>;
   };
 
+  /** Component migration planning */
+  migration: {
+    enabled: boolean;
+    /** Target design system name (e.g. "shadcn/ui", "Custom DS v2") */
+    targetDS: string;
+    /** Component mappings: source → target with guidelines */
+    mappings: Array<{
+      source: string;
+      sourceImportPattern: string;
+      target: string;
+      targetImportPath: string;
+      complexity: "simple" | "moderate" | "complex";
+      guidelines: string;
+      propMapping?: string;
+      breakingChanges?: string[];
+      effort?: string;
+    }>;
+  };
+
   /** Dashboard customization */
   dashboard: {
     title: string;
@@ -120,66 +140,25 @@ export interface DsCoverageConfig {
 }
 
 // ============================================
-// DEFAULTS — Tailwind + React projects
+// DEFAULTS — Minimal & agnostic
 // ============================================
-
-const TAILWIND_COLOR_PREFIXES = [
-  "gray", "slate", "zinc", "neutral", "stone",
-  "red", "orange", "amber", "yellow", "lime",
-  "green", "emerald", "teal", "cyan", "sky",
-  "blue", "indigo", "violet", "purple", "fuchsia",
-  "pink", "rose",
-];
-
-const COLOR_PATTERN = `(?:bg|text|border|ring|outline|shadow|accent|fill|stroke|from|via|to)-(?:${TAILWIND_COLOR_PREFIXES.join("|")})-(?:\\d{2,3}(?:/\\d+)?)`;
-const BW_PATTERN = `(?:bg|text|border|ring)-(?:white|black)(?![a-z-])`;
 
 export const DEFAULT_CONFIG: DsCoverageConfig = {
   scanDir: "src",
-  extensions: [".tsx", ".jsx"],
+  extensions: [".tsx", ".jsx", ".ts", ".js"],
   exclude: [
-    "stories/", ".storybook/", "test/", "__tests__/",
-    ".test.", ".spec.", "node_modules/",
+    "node_modules/",
+    "dist/",
+    "build/",
+    "test/",
+    "__tests__/",
+    ".test.",
+    ".spec.",
+    "stories/",
+    ".storybook/",
   ],
 
-  violations: {
-    hardcodedColors: {
-      enabled: true,
-      label: "Colors",
-      icon: "🎨",
-      color: "oklch(0.637 0.237 25.331)",
-      pattern: `(?:${COLOR_PATTERN})|(?:${BW_PATTERN})`,
-    },
-    hardcodedTypography: {
-      enabled: true,
-      label: "Typography",
-      icon: "🔤",
-      color: "oklch(0.723 0.22 70.08)",
-      pattern: "\\btext-(?:xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl)\\b|\\bfont-(?:thin|light|normal|medium|semibold|bold|extrabold|black)\\b",
-      deduplicateByLine: true,
-    },
-    hardcodedRadius: {
-      enabled: true,
-      label: "Radius",
-      icon: "⬜",
-      color: "oklch(0.8 0.25 102.212)",
-      pattern: "\\brounded-(?:sm|md|lg|xl|2xl|3xl|none)\\b",
-    },
-    hardcodedShadows: {
-      enabled: true,
-      label: "Shadows",
-      icon: "🌫️",
-      color: "oklch(0.723 0.219 149.579)",
-      pattern: "\\bshadow-(?:sm|md|lg|xl|2xl|inner)\\b",
-    },
-    darkMode: {
-      enabled: true,
-      label: "Dark Mode",
-      icon: "🌙",
-      color: "oklch(0.623 0.214 264.376)",
-      pattern: "\\bdark:",
-    },
-  },
+  violations: {},
 
   flags: {
     migrateSimple: "@ds-migrate:\\s*simple",
@@ -188,27 +167,27 @@ export const DEFAULT_CONFIG: DsCoverageConfig = {
   },
 
   componentAnalysis: {
-    enabled: true,
-    directories: ["components/ui/", "components/common/"],
+    enabled: false,
+    directories: ["components/ui/"],
     primaryDirectory: "components/ui/",
-    legacyDirectories: ["components/common/"],
+    legacyDirectories: [],
     api: {
-      requireCVA: true,
+      requireCVA: false,
       requireRadix: false,
-      expectedProps: ["appearance", "hierarchy", "size"],
-      forbiddenProps: ["variant", "intent"],
-      expectedSizes: ["xxsmall", "xsmall", "small", "default", "large"],
-      forbiddenSizes: ["sm", "md", "lg", "xl", "xs", "2xs"],
-      legacyVariantValues: ["destructive", "outline", "ghost", "link"],
+      expectedProps: ["variant", "size"],
+      forbiddenProps: [],
+      expectedSizes: ["small", "medium", "large"],
+      forbiddenSizes: [],
+      legacyVariantValues: [],
     },
     scoring: {
-      usesCVA: 25,
-      correctNaming: 25,
-      correctSizes: 15,
-      hasClassName: 10,
-      usesCompoundVariants: 15,
-      hasAsChild: 5,
-      usesRadix: 5,
+      usesCVA: 0,
+      correctNaming: 35,
+      correctSizes: 25,
+      hasClassName: 15,
+      usesCompoundVariants: 0,
+      hasAsChild: 0,
+      usesRadix: 0,
     },
   },
 
@@ -221,22 +200,8 @@ export const DEFAULT_CONFIG: DsCoverageConfig = {
         id: "resolve-flags",
         title: "Resolve existing migration flags",
         description: "Files already annotated with migration flags from previous reviews.",
-        businessCase: "Highest ROI — zero discovery cost, just execution. Leaving flags unresolved erodes team discipline.",
+        businessCase: "Highest ROI — zero discovery cost, just execution.",
         filter: { type: "flags" },
-      },
-      {
-        id: "primary-components",
-        title: "Migrate primary UI components to 100%",
-        description: "Design system foundation — these components are reused everywhere.",
-        businessCase: "Maximum leverage — one fix here propagates to the entire app.",
-        filter: { type: "directory", prefix: "components/ui/" },
-      },
-      {
-        id: "remove-dark-mode",
-        title: "Remove dark: prefixes",
-        description: "Remove all dark: prefixes and replace with semantic tokens.",
-        businessCase: "Dead code removal — reduces maintenance burden and future conflicts.",
-        filter: { type: "category", key: "darkMode" },
       },
       {
         id: "quick-wins",
@@ -245,35 +210,13 @@ export const DEFAULT_CONFIG: DsCoverageConfig = {
         businessCase: "Best coverage metric improvement per hour. Builds momentum.",
         filter: { type: "quickWins" },
       },
-      {
-        id: "shadows",
-        title: "Migrate hardcoded shadows",
-        description: "Replace shadow-sm/md/lg with named shadow tokens.",
-        businessCase: "Depth consistency — low risk, zero ambiguity, easy to batch.",
-        filter: { type: "category", key: "hardcodedShadows" },
-      },
-      {
-        id: "radius",
-        title: "Migrate hardcoded radius",
-        description: "Replace rounded-sm/md/lg with token values.",
-        businessCase: "Shape consistency — low risk, fully automatable.",
-        filter: { type: "category", key: "hardcodedRadius" },
-      },
-      {
-        id: "typography",
-        title: "Migrate hardcoded typography",
-        description: "Replace text-xs/sm + font-medium combinations with typescale classes.",
-        businessCase: "Readability hierarchy — enables future brand evolution from a single file.",
-        filter: { type: "category", key: "hardcodedTypography" },
-      },
-      {
-        id: "colors",
-        title: "Migrate hardcoded colors",
-        description: "The largest category. Many are ambiguous and need visual context.",
-        businessCase: "Brand consistency and future-proofing — highest effort but highest long-term value.",
-        filter: { type: "category", key: "hardcodedColors" },
-      },
     ],
+  },
+
+  migration: {
+    enabled: false,
+    targetDS: "",
+    mappings: [],
   },
 
   dashboard: {
