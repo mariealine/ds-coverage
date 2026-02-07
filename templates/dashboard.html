@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DS Coverage Dashboard</title>
+  <!-- __DS_INLINE_DATA__ -->
+  <style>
+    :root {
+      --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-family-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+
+      --text-main: oklch(0.21 0.034 264.665);
+      --text-primary: oklch(0.373 0.034 259.733);
+      --text-secondary: oklch(0.551 0.027 264.364);
+      --text-tertiary: oklch(0.707 0.022 261.325);
+      --text-complementary: oklch(1 0 0);
+
+      --bg-base-primary: oklch(1 0 0);
+      --bg-base-primary-hover: oklch(0.985 0.002 247.839);
+      --bg-base-secondary: oklch(0.967 0.003 264.542);
+
+      --color-danger: oklch(0.637 0.237 25.331);
+      --color-warning: oklch(0.723 0.22 70.08);
+      --color-success: oklch(0.723 0.219 149.579);
+      --color-info: oklch(0.623 0.214 259.815);
+      --color-accent: oklch(0.623 0.214 259.815);
+
+      --border-default: oklch(0.928 0.006 264.531);
+      --border-hover: oklch(0.872 0.01 258.338);
+
+      --radius-4: 4px;
+      --radius-6: 6px;
+      --radius-8: 8px;
+      --radius-12: 12px;
+
+      --space-2: 2px; --space-4: 4px; --space-6: 6px; --space-8: 8px;
+      --space-12: 12px; --space-16: 16px; --space-20: 20px; --space-24: 24px;
+      --space-32: 32px; --space-48: 48px;
+
+      --text-size-xxs: 11px; --text-size-xs: 13px; --text-size-default: 14px;
+      --text-size-large: 16px; --text-size-xlarge: 20px; --text-size-hero: 36px;
+
+      --font-weight-regular: 400; --font-weight-medium: 500;
+      --font-weight-semibold: 600; --font-weight-bold: 700;
+
+      --line-height: 145%;
+      --letter-spacing: -0.03em;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-base-primary-hover);
+      color: var(--text-main);
+      line-height: var(--line-height);
+      letter-spacing: var(--letter-spacing);
+      padding: var(--space-24);
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Typescale helpers */
+    .ts-xl-sb { font-size: var(--text-size-xlarge); font-weight: var(--font-weight-semibold); }
+    .ts-l-m { font-size: var(--text-size-large); font-weight: var(--font-weight-medium); }
+    .ts-d-m { font-size: var(--text-size-default); font-weight: var(--font-weight-medium); }
+    .ts-d-r { font-size: var(--text-size-default); font-weight: var(--font-weight-regular); }
+    .ts-xs-m { font-size: var(--text-size-xs); font-weight: var(--font-weight-medium); }
+    .ts-xs-r { font-size: var(--text-size-xs); font-weight: var(--font-weight-regular); }
+    .ts-xxs-m { font-size: var(--text-size-xxs); font-weight: var(--font-weight-medium); }
+    .ts-xxs-r { font-size: var(--text-size-xxs); font-weight: var(--font-weight-regular); }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-32); gap: var(--space-16); flex-wrap: wrap; }
+    .header h1 { font-size: var(--text-size-xlarge); font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
+    .header .subtitle { color: var(--text-secondary); margin-top: var(--space-4); }
+    .timestamp { color: var(--text-tertiary); background: var(--bg-base-secondary); padding: var(--space-4) var(--space-8); border-radius: var(--radius-6); }
+
+    /* Hero ring */
+    .hero { display: grid; grid-template-columns: 200px 1fr; gap: var(--space-32); background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-32); margin-bottom: var(--space-24); }
+    .hero-ring { position: relative; width: 160px; height: 160px; margin: 0 auto; }
+    .hero-ring svg { transform: rotate(-90deg); }
+    .hero-ring .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .hero-ring .percent { font-size: var(--text-size-hero); font-weight: var(--font-weight-bold); letter-spacing: -0.03em; }
+    .hero-ring .percent-label { color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+    .hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-16); align-content: center; }
+    .stat { padding: var(--space-16); border-radius: var(--radius-8); background: var(--bg-base-primary-hover); }
+    .stat-value { font-size: 28px; font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
+    .stat-label { color: var(--text-secondary); margin-top: var(--space-2); }
+
+    /* Category cards */
+    .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-16); margin-bottom: var(--space-24); }
+    .cat-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-20); cursor: pointer; transition: border-color 0.15s; }
+    .cat-card:hover { border-color: var(--color-accent); }
+    .cat-card.active { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .cat-card .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
+    .cat-card .cat-name { text-transform: uppercase; letter-spacing: 0.03em; }
+    .cat-card .cat-icon { font-size: 18px; }
+    .cat-card .cat-count { font-size: 32px; font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
+    .cat-card .cat-files { color: var(--text-secondary); }
+    .cat-bar { height: var(--space-4); background: var(--bg-base-secondary); border-radius: var(--space-2); margin-top: var(--space-12); overflow: hidden; }
+    .cat-bar-fill { height: 100%; border-radius: var(--space-2); transition: width 0.3s; }
+
+    /* Flags */
+    .flags { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-16); margin-bottom: var(--space-24); }
+    .flag-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-16); display: flex; align-items: center; gap: var(--space-12); }
+    .flag-badge { padding: var(--space-4) 10px; border-radius: var(--radius-6); font-family: var(--font-family-mono); white-space: nowrap; }
+    .flag-badge.simple { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
+    .flag-badge.complex { background: oklch(0.971 0.013 17.38); color: oklch(0.505 0.213 27.518); }
+    .flag-badge.todo { background: oklch(0.97 0.014 254.604); color: oklch(0.488 0.243 264.376); }
+    .flag-count { font-size: var(--text-size-xlarge); font-weight: var(--font-weight-bold); }
+
+    /* Toolbar */
+    .toolbar { display: flex; gap: var(--space-12); margin-bottom: var(--space-16); align-items: center; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: var(--space-8) var(--space-12); border: 1px solid var(--border-default); border-radius: var(--radius-8); font-family: var(--font-family); outline: none; background: var(--bg-base-primary); }
+    .search-input:focus { border-color: var(--color-accent); }
+    .sort-select { padding: var(--space-8) var(--space-12); border: 1px solid var(--border-default); border-radius: var(--radius-8); font-family: var(--font-family); background: var(--bg-base-primary); cursor: pointer; }
+
+    /* File table */
+    .file-table-container { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); overflow: hidden; }
+    .file-table { width: 100%; border-collapse: collapse; }
+    .file-table th { text-align: left; padding: 10px var(--space-16); color: var(--text-secondary); background: var(--bg-base-primary-hover); border-bottom: 1px solid var(--border-default); cursor: pointer; user-select: none; text-transform: uppercase; letter-spacing: 0.05em; }
+    .file-table th:hover { color: var(--text-main); }
+    .file-table td { padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--border-default); vertical-align: top; }
+    .file-table tr:last-child td { border-bottom: none; }
+    .file-table tr:hover td { background: var(--bg-base-primary-hover); }
+    .file-path { font-family: var(--font-family-mono); color: var(--color-accent); word-break: break-all; }
+    .file-path:hover { text-decoration: underline; cursor: pointer; }
+    .badge { display: inline-block; padding: var(--space-2) var(--space-6); border-radius: var(--radius-4); min-width: 24px; text-align: center; }
+    .badge.zero { background: var(--bg-base-secondary); color: var(--text-tertiary); }
+
+    /* Detail panel */
+    .detail-panel { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-20); margin-top: var(--space-16); display: none; }
+    .detail-panel.open { display: block; }
+    .detail-close { background: none; border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-4) 10px; cursor: pointer; font-family: var(--font-family); }
+    .violation-list { font-family: var(--font-family-mono); line-height: 1.8; }
+    .violation-item { display: flex; gap: var(--space-12); padding: var(--space-4) var(--space-8); border-radius: var(--radius-4); }
+    .violation-item:hover { background: var(--bg-base-primary-hover); }
+    .violation-line { color: var(--text-tertiary); min-width: 50px; text-align: right; }
+    .violation-match { color: var(--color-danger); font-weight: var(--font-weight-semibold); min-width: 160px; }
+    .violation-context { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Pagination */
+    .pagination { display: flex; justify-content: space-between; align-items: center; padding: var(--space-12) var(--space-16); color: var(--text-secondary); background: var(--bg-base-primary-hover); border-top: 1px solid var(--border-default); }
+    .pagination button { padding: var(--space-6) var(--space-12); border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-base-primary); cursor: pointer; font-family: var(--font-family); }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+
+    /* Tabs */
+    .tab-bar { display: flex; gap: var(--space-2); margin-bottom: var(--space-24); border-bottom: 1px solid var(--border-default); }
+    .tab-btn { padding: var(--space-8) var(--space-20); border: none; background: none; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; transition: color 0.15s, border-color 0.15s; font-family: var(--font-family); }
+    .tab-btn:hover { color: var(--text-main); }
+    .tab-btn.active { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Roadmap */
+    .phase-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-16); }
+    .phase-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-16); margin-bottom: var(--space-12); }
+    .phase-title { display: flex; align-items: center; gap: var(--space-8); }
+    .phase-number { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--color-accent); color: var(--text-complementary); flex-shrink: 0; }
+    .phase-desc { color: var(--text-secondary); margin-bottom: var(--space-16); }
+    .phase-stats { display: flex; gap: var(--space-24); margin-bottom: var(--space-16); }
+    .phase-stat-value { font-weight: var(--font-weight-bold); }
+    .phase-stat-label { color: var(--text-tertiary); }
+    .phase-files { border-top: 1px solid var(--border-default); padding-top: var(--space-12); }
+    .phase-files-toggle { background: none; border: none; color: var(--color-accent); cursor: pointer; font-family: var(--font-family); padding: 0; }
+    .phase-files-toggle:hover { text-decoration: underline; }
+    .phase-file-list { display: none; margin-top: var(--space-8); }
+    .phase-file-list.open { display: block; }
+    .phase-file-item { display: flex; justify-content: space-between; padding: var(--space-4) var(--space-8); border-radius: var(--radius-4); }
+    .phase-file-item:hover { background: var(--bg-base-primary-hover); }
+    .phase-file-path { font-family: var(--font-family-mono); color: var(--text-primary); }
+    .phase-file-count { color: var(--text-secondary); flex-shrink: 0; }
+    .biz-case { background: var(--bg-base-primary-hover); border-radius: var(--radius-8); padding: var(--space-12) var(--space-16); margin-bottom: var(--space-16); border-left: 3px solid var(--color-accent); }
+    .dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--space-12); margin-bottom: var(--space-24); }
+    .dir-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-16); }
+    .dir-bar { display: flex; height: var(--space-6); border-radius: var(--space-4); overflow: hidden; background: var(--bg-base-secondary); margin-bottom: var(--space-6); }
+    .dir-bar-fill { height: 100%; transition: width 0.3s; }
+    .dir-stats { display: flex; justify-content: space-between; color: var(--text-secondary); }
+
+    /* Token table */
+    .token-table { width: 100%; border-collapse: collapse; background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); overflow: hidden; }
+    .token-table th { text-align: left; padding: 10px var(--space-16); color: var(--text-secondary); background: var(--bg-base-primary-hover); border-bottom: 1px solid var(--border-default); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .token-table td { padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--border-default); vertical-align: middle; }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table tr:hover td { background: var(--bg-base-primary-hover); }
+    .token-score-bar { display: flex; align-items: center; gap: var(--space-8); min-width: 140px; }
+    .token-bar-track { flex: 1; height: var(--space-6); border-radius: var(--space-4); background: var(--bg-base-secondary); overflow: hidden; }
+    .token-bar-fill { height: 100%; border-radius: var(--space-4); transition: width 0.3s; }
+    .token-score-pct { min-width: 44px; text-align: right; font-weight: var(--font-weight-semibold); }
+
+    /* API Rework */
+    .api-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-12); align-content: center; }
+    .api-stat { padding: var(--space-12); border-radius: var(--radius-8); background: var(--bg-base-primary-hover); text-align: center; }
+    .api-stat.clickable { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; border: 1px solid transparent; }
+    .api-stat.clickable:hover { border-color: var(--color-accent); }
+    .api-stat.clickable.active { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .api-stat-value { font-size: 24px; font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
+    .api-stat-label { color: var(--text-secondary); margin-top: var(--space-2); }
+    .api-loc-btn { padding: var(--space-6) var(--space-16); border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-base-primary); cursor: pointer; font-family: var(--font-family); transition: all 0.15s; }
+    .api-loc-btn:hover { border-color: var(--color-accent); }
+    .api-loc-btn.active { background: var(--color-accent); color: var(--text-complementary); border-color: var(--color-accent); }
+    .comp-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-16); margin-bottom: var(--space-8); display: grid; grid-template-columns: 1fr auto; gap: var(--space-16); align-items: start; }
+    .comp-card:hover { border-color: var(--border-hover); }
+    .comp-features { display: flex; gap: var(--space-6); flex-wrap: wrap; margin-top: var(--space-8); }
+    .comp-feature { padding: var(--space-2) var(--space-8); border-radius: var(--radius-4); display: inline-flex; align-items: center; gap: var(--space-4); }
+    .comp-feature.yes { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
+    .comp-feature.no { background: var(--bg-base-secondary); color: var(--text-tertiary); }
+    .comp-feature.warn { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
+    .comp-score { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); min-width: 64px; }
+    .comp-score-ring { position: relative; }
+    .comp-score-ring svg { transform: rotate(-90deg); }
+    .comp-score-ring .score-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); }
+    .comp-issue { display: flex; align-items: flex-start; gap: var(--space-6); padding: var(--space-4) 0; color: var(--text-primary); }
+    .comp-issue-icon.error { color: var(--color-danger); }
+    .comp-issue-icon.warning { color: var(--color-warning); }
+    .loc-badge { padding: var(--space-2) var(--space-8); border-radius: var(--radius-4); font-family: var(--font-family-mono); }
+    .loc-badge.primary { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
+    .loc-badge.legacy, .loc-badge.common { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
+    .loc-badge.other { background: var(--bg-base-secondary); color: var(--text-secondary); }
+
+    /* States */
+    .empty-state { text-align: center; padding: var(--space-48); color: var(--text-secondary); }
+    .empty-state .icon { font-size: 48px; margin-bottom: var(--space-12); }
+    .loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: var(--space-16); color: var(--text-secondary); }
+    .spinner { width: 32px; height: 32px; border: 3px solid var(--border-default); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .hero { grid-template-columns: 1fr; }
+      .flags { grid-template-columns: 1fr; }
+      .categories { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div class="ts-d-m">Loading report...</div>
+    <div class="ts-xxs-r" style="color: var(--text-tertiary);">
+      Run <code style="background:var(--bg-base-secondary);padding:var(--space-2) var(--space-6);border-radius:var(--radius-4);">npx ds-coverage</code> first if no report exists.
+    </div>
+  </div>
+</div>
+<script>
+// ============================================
+// Dashboard — reads categories and config from embedded data
+// ============================================
+const CFG = window.__DS_CONFIG__ || { title: 'DS Coverage', subtitle: '', categories: {}, componentAnalysisEnabled: false, roadmapEnabled: false, expectedProps: [], expectedSizes: [], forbiddenProps: [], forbiddenSizes: [] };
+const CATS = CFG.categories;
+const CAT_KEYS = Object.keys(CATS);
+
+let report = null;
+let activeTab = 'metrics';
+let activeCategory = null;
+let searchQuery = '';
+let sortField = 'totalViolations';
+let sortDir = 'desc';
+let currentPage = 0;
+const PAGE_SIZE = 50;
+let detailFile = null;
+const openPhases = new Set();
+let tokenLocationFilter = 'all';
+let tokenSearchQuery = '';
+let tokenSortField = 'score';
+let tokenSortDir = 'asc';
+let apiLocationFilter = 'all';
+let apiFeatureFilter = null;
+let apiSearchQuery = '';
+const openCompDetails = new Set();
+
+async function loadReport() {
+  if (window.__DS_REPORT__) { report = window.__DS_REPORT__; render(); return; }
+  try {
+    const res = await fetch('./ds-coverage-report.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    report = await res.json();
+    render();
+  } catch (e) {
+    document.getElementById('app').innerHTML = `<div class="empty-state"><div class="icon">📊</div><h2 class="ts-xl-sb">No report found</h2><p class="ts-d-r" style="margin-top:var(--space-8)">Run the scanner first:</p><code style="display:inline-block;margin-top:var(--space-12);background:var(--bg-base-secondary);padding:var(--space-8) var(--space-16);border-radius:var(--radius-8);">npx ds-coverage</code></div>`;
+  }
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function getCoverageColor(pct) { return pct >= 80 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-danger)'; }
+
+function renderRing(pct, size) {
+  size = size || 160;
+  const r = (size / 2) - 14;
+  const circ = 2 * Math.PI * r;
+  const off = circ * (1 - pct / 100);
+  const c = getCoverageColor(pct);
+  const sw = size > 80 ? 10 : 3;
+  const fs = size > 80 ? 'var(--text-size-hero)' : 'var(--text-size-xxs)';
+  return `<div class="${size > 80 ? 'hero-ring' : 'comp-score-ring'}" style="width:${size}px;height:${size}px"><svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--border-default)" stroke-width="${sw}" /><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-dasharray="${circ}" stroke-dashoffset="${off}" stroke-linecap="round" /></svg><div class="${size > 80 ? 'label' : 'score-label ts-xxs-m'}" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:${c}"><span style="font-size:${fs};font-weight:var(--font-weight-bold);letter-spacing:-0.03em">${pct}%</span>${size > 80 ? '<span class="percent-label ts-xxs-m">Coverage</span>' : ''}</div></div>`;
+}
+
+function renderBadge(count, catKey) {
+  if (count === 0) return `<span class="badge ts-xxs-m zero">${count}</span>`;
+  const color = CATS[catKey]?.color || 'var(--color-danger)';
+  return `<span class="badge ts-xxs-m" style="background:color-mix(in oklch, ${color} 12%, white);color:${color}">${count}</span>`;
+}
+
+function getFilteredFiles() {
+  let files = report.files;
+  if (activeCategory) files = files.filter(f => (f.violations[activeCategory]?.length || 0) > 0);
+  if (searchQuery) { const q = searchQuery.toLowerCase(); files = files.filter(f => f.path.toLowerCase().includes(q)); }
+  files = [...files].sort((a, b) => {
+    let av, bv;
+    if (sortField === 'path') { av = a.path; bv = b.path; return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+    if (CAT_KEYS.includes(sortField)) { av = a.violations[sortField]?.length || 0; bv = b.violations[sortField]?.length || 0; }
+    else { av = a[sortField] || 0; bv = b[sortField] || 0; }
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+  return files;
+}
+
+function renderHeader() {
+  const s = report.summary;
+  const tabs = [{ id: 'metrics', label: 'Metrics — App' }];
+  if (CFG.componentAnalysisEnabled) tabs.push({ id: 'tokens', label: 'Metrics — Design System' }, { id: 'api', label: 'Components — API Redesign' });
+  if (CFG.roadmapEnabled) tabs.push({ id: 'roadmap', label: 'Refactoring Roadmap' });
+  return `<div class="header"><div><h1>${esc(CFG.title)}</h1><div class="subtitle ts-d-r">${esc(CFG.subtitle)}</div></div><div><span class="timestamp ts-xxs-r">Generated: ${new Date(report.generatedAt).toLocaleString()}</span></div></div><div class="tab-bar">${tabs.map(t => `<button class="tab-btn ts-d-m ${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
+}
+
+function renderMetrics() {
+  const s = report.summary;
+  const files = getFilteredFiles();
+  const totalPages = Math.ceil(files.length / PAGE_SIZE);
+  const pageFiles = files.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const maxV = Math.max(...CAT_KEYS.map(k => s.categories[k]?.totalViolations || 0), 1);
+
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Metrics — App</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Design system compliance across all ${s.totalFilesScanned} files. Violations by category, flags, and per-file breakdown.</p>
+  <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(s.coveragePercent, 160)}</div>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-value">${s.totalFilesScanned}</div><div class="stat-label ts-xxs-m">Files scanned</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--color-success)">${s.totalFilesScanned - s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">Compliant</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--color-danger)">${s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">With debt</div></div>
+    <div class="stat"><div class="stat-value">${s.totalViolations}</div><div class="stat-label ts-xxs-m">Total violations</div></div>
+  </div></div>
+  <div class="categories">${CAT_KEYS.map(k => { const cat = s.categories[k]; if (!cat) return ''; const m = CATS[k]; const w = (cat.totalViolations / maxV * 100).toFixed(1);
+    return `<div class="cat-card ${activeCategory === k ? 'active' : ''}" onclick="toggleCategory('${k}')"><div class="cat-header"><span class="cat-name ts-xxs-m">${m.label}</span><span class="cat-icon">${m.icon}</span></div><div class="cat-count">${cat.totalViolations}</div><div class="cat-files ts-xxs-r">${cat.totalFiles} files</div><div class="cat-bar"><div class="cat-bar-fill" style="width:${w}%;background:${m.color}"></div></div></div>`;
+  }).join('')}</div>
+  <div class="flags">
+    <div class="flag-card"><span class="flag-badge simple ts-xxs-m">@ds-migrate: simple</span><span class="flag-count">${s.flags.migrateSimple}</span></div>
+    <div class="flag-card"><span class="flag-badge complex ts-xxs-m">@ds-migrate: complex</span><span class="flag-count">${s.flags.migrateComplex}</span></div>
+    <div class="flag-card"><span class="flag-badge todo ts-xxs-m">@ds-todo</span><span class="flag-count">${s.flags.todo}</span></div>
+  </div>
+  <div class="toolbar"><input class="search-input ts-xs-r" type="text" placeholder="Filter by file path..." value="${searchQuery}" oninput="onSearch(this.value)" />
+  <select class="sort-select ts-xs-r" onchange="onSort(this.value)"><option value="totalViolations-desc" ${sortField==='totalViolations'&&sortDir==='desc'?'selected':''}>Most violations</option><option value="totalViolations-asc" ${sortField==='totalViolations'&&sortDir==='asc'?'selected':''}>Least violations</option><option value="path-asc" ${sortField==='path'&&sortDir==='asc'?'selected':''}>Name A-Z</option>${CAT_KEYS.map(k=>`<option value="${k}-desc">${CATS[k].label} ↓</option>`).join('')}</select></div>
+  <div class="file-table-container"><table class="file-table"><thead><tr><th class="ts-xxs-m" style="width:45%">File</th><th class="ts-xxs-m">Total</th>${CAT_KEYS.map(k=>`<th class="ts-xxs-m">${CATS[k].label.slice(0,6)}</th>`).join('')}<th class="ts-xxs-m">Flags</th></tr></thead><tbody>
+  ${pageFiles.length === 0 ? `<tr><td colspan="${CAT_KEYS.length + 3}" class="empty-state ts-d-r">No files match.</td></tr>` : pageFiles.map(f => `<tr onclick="showDetail('${f.path.replace(/'/g,"\\'")}')" style="cursor:pointer"><td><span class="file-path ts-xxs-r">${f.path}</span></td><td><strong class="ts-xs-m">${f.totalViolations}</strong></td>${CAT_KEYS.map(k=>`<td>${renderBadge(f.violations[k]?.length||0,k)}</td>`).join('')}<td>${f.totalFlags > 0 ? `<span class="badge ts-xxs-m" style="background:oklch(0.982 0.022 70.08);color:oklch(0.393 0.095 70.08)">${f.totalFlags}</span>` : renderBadge(0,'')}</td></tr>`).join('')}
+  </tbody></table>${totalPages > 1 ? `<div class="pagination"><span class="ts-xxs-r">Showing ${currentPage*PAGE_SIZE+1}–${Math.min((currentPage+1)*PAGE_SIZE,files.length)} of ${files.length}</span><div style="display:flex;gap:var(--space-8)"><button class="ts-xxs-m" onclick="goPage(${currentPage-1})" ${currentPage===0?'disabled':''}>← Previous</button><button class="ts-xxs-m" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages-1?'disabled':''}>Next →</button></div></div>` : ''}</div>
+  <div id="detail-panel" class="detail-panel"></div>`;
+}
+
+function renderTokens() {
+  const api = report.componentApi;
+  if (!api) return '<div class="empty-state ts-d-r">No component data.</div>';
+  const s = api.summary;
+  let components = api.components;
+  if (tokenLocationFilter !== 'all') components = components.filter(c => c.location === tokenLocationFilter);
+  if (tokenSearchQuery) { const q = tokenSearchQuery.toLowerCase(); components = components.filter(c => c.name.toLowerCase().includes(q) || c.path.toLowerCase().includes(q)); }
+  components = [...components].sort((a, b) => { let av, bv; if (tokenSortField === 'name') return tokenSortDir === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name); if (tokenSortField === 'score') { av = a.tokenCoverage.score; bv = b.tokenCoverage.score; } else if (tokenSortField === 'violations') { av = a.tokenCoverage.totalViolations; bv = b.tokenCoverage.totalViolations; } else { av = a.tokenCoverage.violations[tokenSortField]||0; bv = b.tokenCoverage.violations[tokenSortField]||0; } return tokenSortDir === 'asc' ? av - bv : bv - av; });
+  const total = components.length;
+  const avg = total > 0 ? Math.round(components.reduce((s,c) => s + c.tokenCoverage.score, 0) / total * 100) / 100 : 100;
+  const locations = Object.keys(s.byLocation);
+  const sortI = (f) => tokenSortField === f ? (tokenSortDir === 'asc' ? ' ↑' : ' ↓') : '';
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Metrics — Design System</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Token compliance per component. Score = % of lines free from hardcoded values.</p>
+  <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(Math.round(avg), 160)}</div><div class="api-stats-grid">
+    <div class="api-stat clickable ${tokenLocationFilter==='all'?'active':''}" onclick="setTokenFilter('all')"><div class="api-stat-value">${s.totalComponents}</div><div class="api-stat-label ts-xxs-m">Components</div></div>
+    ${locations.map(l => `<div class="api-stat clickable ${tokenLocationFilter===l?'active':''}" onclick="setTokenFilter('${l}')"><div class="api-stat-value">${s.byLocation[l]}</div><div class="api-stat-label ts-xxs-m">in ${l}/</div></div>`).join('')}
+    <div class="api-stat"><div class="api-stat-value" style="color:var(--color-success)">${s.tokenCompliantCount}</div><div class="api-stat-label ts-xxs-m">100% clean</div></div>
+    <div class="api-stat"><div class="api-stat-value" style="color:var(--color-danger)">${s.totalComponents - s.tokenCompliantCount}</div><div class="api-stat-label ts-xxs-m">Need rework</div></div>
+  </div></div>
+  <div class="toolbar">
+    <button class="api-loc-btn ts-xs-m ${tokenLocationFilter==='all'?'active':''}" onclick="setTokenFilter('all')">All (${s.totalComponents})</button>
+    ${locations.map(l => `<button class="api-loc-btn ts-xs-m ${tokenLocationFilter===l?'active':''}" onclick="setTokenFilter('${l}')">${l}/ (${s.byLocation[l]})</button>`).join('')}
+    <input class="search-input ts-xs-r" type="text" placeholder="Search component..." value="${tokenSearchQuery}" oninput="onTokenSearch(this.value)" />
+  </div>
+  <table class="token-table"><thead><tr><th class="ts-xxs-m" style="width:60px">Loc</th><th class="ts-xxs-m" style="cursor:pointer" onclick="onTokenSort('name')">Component${sortI('name')}</th><th class="ts-xxs-m" style="min-width:160px;cursor:pointer" onclick="onTokenSort('score')">Token Score${sortI('score')}</th><th class="ts-xxs-m" style="text-align:center;cursor:pointer" onclick="onTokenSort('violations')">Total${sortI('violations')}</th>${CAT_KEYS.map(k=>`<th class="ts-xxs-m" style="text-align:center;cursor:pointer" onclick="onTokenSort('${k}')">${CATS[k].label.slice(0,6)}${sortI(k)}</th>`).join('')}</tr></thead><tbody>
+  ${components.map(c => { const tc = c.tokenCoverage; const color = getCoverageColor(tc.score); const sr = Math.round(tc.score);
+    return `<tr><td><span class="loc-badge ${c.location} ts-xxs-m">${c.location}/</span></td><td><div class="ts-xs-m" style="font-weight:var(--font-weight-semibold)">${c.name}</div><div class="ts-xxs-r" style="color:var(--text-tertiary);font-family:var(--font-family-mono)">${c.path}</div></td><td><div class="token-score-bar"><div class="token-bar-track"><div class="token-bar-fill" style="width:${sr}%;background:${color}"></div></div><span class="token-score-pct ts-xs-m" style="color:${color}">${sr}%</span></div></td><td style="text-align:center">${tc.totalViolations > 0 ? `<strong class="ts-xs-m">${tc.totalViolations}</strong>` : '<span style="color:var(--color-success)" class="ts-xs-m">✓</span>'}</td>${CAT_KEYS.map(k=>`<td style="text-align:center">${renderBadge(tc.violations[k]||0,k)}</td>`).join('')}</tr>`; }).join('') || `<tr><td colspan="${CAT_KEYS.length+4}" class="empty-state ts-d-r">No components match.</td></tr>`}
+  </tbody></table>`;
+}
+
+function renderApiRework() {
+  const api = report.componentApi;
+  if (!api) return '<div class="empty-state ts-d-r">No component API data.</div>';
+  const s = api.summary;
+  let components = api.components;
+  const locations = Object.keys(s.byLocation);
+  if (apiLocationFilter !== 'all') components = components.filter(c => c.location === apiLocationFilter);
+  if (apiFeatureFilter) {
+    const filters = { cva: c=>c.usesCVA, radix: c=>c.usesRadix, compound: c=>c.usesCompoundVariants, correctNaming: c=>!c.variantProps.some(p=>CFG.forbiddenProps.includes(p)), correctSizes: c=>!c.sizeValues.some(v=>CFG.forbiddenSizes.includes(v)), compliant: c=>c.complianceScore>=80 };
+    const fn = filters[apiFeatureFilter]; if (fn) components = components.filter(fn);
+  }
+  if (apiSearchQuery) { const q = apiSearchQuery.toLowerCase(); components = components.filter(c => c.name.toLowerCase().includes(q) || c.path.toLowerCase().includes(q)); }
+
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Components — API Redesign</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Audit of reusable components against the API convention: CVA variants, expected props, sizes, compoundVariants.</p>
+  <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(s.avgComplianceScore, 160)}</div><div class="api-stats-grid">
+    <div class="api-stat clickable ${apiLocationFilter==='all'&&!apiFeatureFilter?'active':''}" onclick="apiFeatureFilter=null;setApiFilter('all')"><div class="api-stat-value">${s.totalComponents}</div><div class="api-stat-label ts-xxs-m">Components</div></div>
+    ${locations.map(l => `<div class="api-stat clickable ${apiLocationFilter===l?'active':''}" onclick="apiFeatureFilter=null;setApiFilter('${l}')"><div class="api-stat-value">${s.byLocation[l]}</div><div class="api-stat-label ts-xxs-m">in ${l}/</div></div>`).join('')}
+    <div class="api-stat clickable ${apiFeatureFilter==='cva'?'active':''}" onclick="setApiFeatureFilter('cva')"><div class="api-stat-value">${s.usesCVA}</div><div class="api-stat-label ts-xxs-m">Use CVA</div></div>
+    <div class="api-stat clickable ${apiFeatureFilter==='radix'?'active':''}" onclick="setApiFeatureFilter('radix')"><div class="api-stat-value">${s.usesRadix}</div><div class="api-stat-label ts-xxs-m">Use Radix</div></div>
+    <div class="api-stat clickable ${apiFeatureFilter==='compound'?'active':''}" onclick="setApiFeatureFilter('compound')"><div class="api-stat-value">${s.usesCompoundVariants}</div><div class="api-stat-label ts-xxs-m">compoundVariants</div></div>
+    <div class="api-stat clickable ${apiFeatureFilter==='correctNaming'?'active':''}" onclick="setApiFeatureFilter('correctNaming')"><div class="api-stat-value">${s.correctApiNaming}</div><div class="api-stat-label ts-xxs-m">Correct API</div></div>
+    <div class="api-stat clickable ${apiFeatureFilter==='compliant'?'active':''}" onclick="setApiFeatureFilter('compliant')"><div class="api-stat-value" style="color:var(--color-success)">${s.compliantCount}</div><div class="api-stat-label ts-xxs-m">Compliant (≥80)</div></div>
+  </div></div>
+  <div class="toolbar">
+    <button class="api-loc-btn ts-xs-m ${apiLocationFilter==='all'?'active':''}" onclick="setApiFilter('all')">All (${s.totalComponents})</button>
+    ${locations.map(l => `<button class="api-loc-btn ts-xs-m ${apiLocationFilter===l?'active':''}" onclick="setApiFilter('${l}')">${l}/ (${s.byLocation[l]})</button>`).join('')}
+    <input class="search-input ts-xs-r" type="text" placeholder="Search component..." value="${apiSearchQuery}" oninput="onApiSearch(this.value)" />
+  </div>
+  <div>${components.map(comp => { const isOpen = openCompDetails.has(comp.path); const features = [{l:'CVA',ok:comp.usesCVA},{l:'Radix',ok:comp.usesRadix},{l:'className',ok:comp.hasClassName},{l:'asChild',ok:comp.hasAsChild},{l:'compoundVariants',ok:comp.usesCompoundVariants}];
+    const propsHtml = comp.variantProps.length > 0 ? `<div style="margin-top:var(--space-6)"><span class="ts-xxs-m" style="color:var(--text-secondary)">Props:</span> ${comp.variantProps.map(p => { const ok = CFG.expectedProps.includes(p); const bad = CFG.forbiddenProps.includes(p); return `<span class="comp-feature ts-xxs-m ${bad?'warn':ok?'yes':'no'}">${p}</span>`; }).join('')}</div>` : '';
+    const sizesHtml = comp.sizeValues.length > 0 ? `<div style="margin-top:var(--space-4)"><span class="ts-xxs-m" style="color:var(--text-secondary)">Sizes:</span> ${comp.sizeValues.map(v => `<span class="comp-feature ts-xxs-m ${CFG.expectedSizes.includes(v)?'yes':'warn'}">${v}</span>`).join('')}</div>` : '';
+    const issuesHtml = comp.issues.length > 0 ? `<div style="${isOpen?'':'display:none'};margin-top:var(--space-8)">${comp.issues.map(i => `<div class="comp-issue ts-xxs-r"><span class="comp-issue-icon ${i.severity}">${i.severity==='error'?'✕':'⚠'}</span><span>${esc(i.message)}</span></div>`).join('')}</div>` : '';
+    return `<div class="comp-card" style="cursor:pointer" onclick="toggleCompDetail('${comp.path.replace(/'/g,"\\'")}')"><div><div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap"><span class="ts-d-m" style="font-weight:var(--font-weight-semibold)">${comp.name}</span><span class="loc-badge ${comp.location} ts-xxs-m">${comp.location}/</span>${comp.issues.length>0?`<span class="ts-xxs-m" style="color:var(--text-secondary)">${comp.issues.filter(i=>i.severity==='error').length} errors, ${comp.issues.filter(i=>i.severity==='warning').length} warnings</span>`:'<span class="ts-xxs-m" style="color:var(--color-success)">✓ No issues</span>'}</div><div style="font-family:var(--font-family-mono);color:var(--text-secondary)" class="ts-xxs-r">${comp.path}</div><div class="comp-features">${features.map(f=>`<span class="comp-feature ts-xxs-m ${f.ok?'yes':'no'}">${f.ok?'✓':'✕'} ${f.l}</span>`).join('')}</div>${propsHtml}${sizesHtml}${issuesHtml}</div><div class="comp-score">${renderRing(comp.complianceScore, 48)}</div></div>`; }).join('') || '<div class="empty-state ts-d-r">No components match.</div>'}</div>`;
+}
+
+function renderRoadmap() {
+  const r = report.roadmap;
+  if (!r) return '<div class="empty-state ts-d-r">No roadmap data.</div>';
+  const phasesHtml = r.phases.map((p, i) => { const isOpen = openPhases.has(p.id);
+    return `<div class="phase-card"><div class="phase-header"><div class="phase-title"><span class="phase-number ts-xxs-m">${i+1}</span><span class="ts-l-m">${p.title}</span></div></div><div class="phase-desc ts-xs-r">${p.description}</div>${p.businessCase?`<div class="biz-case"><div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4);text-transform:uppercase;letter-spacing:0.05em">Why prioritize</div><div class="ts-xs-r" style="color:var(--text-primary)">${p.businessCase}</div></div>`:''}<div class="phase-stats"><div><span class="phase-stat-value ts-d-m">${p.filesCount}</span><span class="phase-stat-label ts-xxs-r"> files</span></div><div><span class="phase-stat-value ts-d-m">${p.violationsCount}</span><span class="phase-stat-label ts-xxs-r"> violations</span></div></div><div class="phase-files"><button class="phase-files-toggle ts-xs-m" onclick="togglePhaseFiles('${p.id}')">${isOpen?'▾ Hide files':'▸ Show files'} (${p.files.length})</button><div class="phase-file-list ${isOpen?'open':''}">${p.files.map(f=>`<div class="phase-file-item"><span class="phase-file-path ts-xxs-r">${f.path}</span><span class="phase-file-count ts-xxs-m">${f.count}</span></div>`).join('')}</div></div></div>`; }).join('');
+  const topDirs = r.directories.slice(0, 15);
+  const dirHtml = topDirs.map(d => `<div class="dir-card"><div class="ts-xxs-m" style="font-family:var(--font-family-mono);margin-bottom:var(--space-8);word-break:break-all">${d.path}/</div><div class="dir-bar"><div class="dir-bar-fill" style="width:${d.coveragePercent}%;background:${getCoverageColor(d.coveragePercent)}"></div></div><div class="dir-stats ts-xxs-r"><span>${d.coveragePercent}% compliant</span><span>${d.filesWithViolations}/${d.totalFiles} with debt</span><span>${d.totalViolations} violations</span></div></div>`).join('');
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Refactoring Roadmap</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Migration phases ordered by impact. Each includes a business case and affected files.</p>${phasesHtml}<h2 class="ts-xl-sb" style="margin-top:var(--space-32);margin-bottom:var(--space-8)">Coverage by Directory</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-16)">Directories sorted by most violations.</p><div class="dir-grid">${dirHtml}</div>`;
+}
+
+function render() {
+  let html = renderHeader();
+  html += `<div class="tab-content ${activeTab==='metrics'?'active':''}">${renderMetrics()}</div>`;
+  if (CFG.componentAnalysisEnabled) {
+    html += `<div class="tab-content ${activeTab==='tokens'?'active':''}">${renderTokens()}</div>`;
+    html += `<div class="tab-content ${activeTab==='api'?'active':''}">${renderApiRework()}</div>`;
+  }
+  if (CFG.roadmapEnabled) html += `<div class="tab-content ${activeTab==='roadmap'?'active':''}">${renderRoadmap()}</div>`;
+  document.getElementById('app').innerHTML = html;
+  if (activeTab === 'metrics' && detailFile) showDetail(detailFile);
+}
+
+function switchTab(t) { activeTab = t; render(); }
+function toggleCategory(k) { activeCategory = activeCategory === k ? null : k; currentPage = 0; render(); }
+function onSearch(v) { searchQuery = v; currentPage = 0; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
+function onSort(v) { const [f,d] = v.split('-'); sortField = f; sortDir = d; currentPage = 0; render(); }
+function goPage(p) { currentPage = Math.max(0, p); render(); window.scrollTo({ top: document.querySelector('.file-table-container')?.offsetTop - 20, behavior: 'smooth' }); }
+function setTokenFilter(l) { tokenLocationFilter = tokenLocationFilter === l ? 'all' : l; render(); }
+function onTokenSearch(v) { tokenSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
+function onTokenSort(f) { if (tokenSortField === f) tokenSortDir = tokenSortDir === 'asc' ? 'desc' : 'asc'; else { tokenSortField = f; tokenSortDir = f === 'name' ? 'asc' : 'asc'; } render(); }
+function setApiFilter(l) { apiLocationFilter = apiLocationFilter === l ? 'all' : l; render(); }
+function setApiFeatureFilter(f) { apiFeatureFilter = apiFeatureFilter === f ? null : f; render(); }
+function onApiSearch(v) { apiSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
+function toggleCompDetail(p) { if (openCompDetails.has(p)) openCompDetails.delete(p); else openCompDetails.add(p); render(); }
+function togglePhaseFiles(id) { if (openPhases.has(id)) openPhases.delete(id); else openPhases.add(id); render(); }
+
+function showDetail(filePath) {
+  detailFile = filePath;
+  const file = report.files.find(f => f.path === filePath);
+  if (!file) return;
+  const allV = [];
+  for (const [key, vs] of Object.entries(file.violations)) { for (const v of vs) allV.push({ ...v, cat: key }); }
+  for (const v of file.flags.migrateSimple) allV.push({ ...v, cat: 'flag-simple' });
+  for (const v of file.flags.migrateComplex) allV.push({ ...v, cat: 'flag-complex' });
+  for (const v of file.flags.todo) allV.push({ ...v, cat: 'flag-todo' });
+  allV.sort((a, b) => a.line - b.line);
+  const panel = document.getElementById('detail-panel');
+  panel.className = 'detail-panel open';
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-16)"><h3 class="ts-d-m" style="font-family:var(--font-family-mono)">${file.path}</h3><button class="detail-close ts-xxs-m" onclick="closeDetail()">Close</button></div><div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-line ts-xxs-r">L${v.line}</span><span class="violation-match ts-xxs-m" style="color:${c}">${v.match}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div>`; }).join('')}</div>`;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function closeDetail() { detailFile = null; document.getElementById('detail-panel').className = 'detail-panel'; }
+
+loadReport();
+</script>
+</body>
+</html>

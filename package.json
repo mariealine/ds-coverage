@@ -1,0 +1,63 @@
+{
+  "name": "ds-coverage",
+  "version": "0.1.0",
+  "description": "Design system coverage scanner & dashboard — detect hardcoded tokens, audit component APIs, and track migration progress.",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "design-system",
+    "coverage",
+    "tailwind",
+    "tokens",
+    "scanner",
+    "dashboard",
+    "cva",
+    "radix",
+    "design-tokens",
+    "migration"
+  ],
+  "files": [
+    "dist",
+    "templates",
+    "ds-coverage.config.example.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    }
+  },
+  "bin": {
+    "ds-coverage": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "author": ""
+}

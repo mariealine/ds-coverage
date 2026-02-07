@@ -1,0 +1,27 @@
+import { defineConfig } from "tsup";
+
+export default defineConfig([
+  {
+    entry: {
+      index: "src/index.ts",
+      config: "src/config.ts",
+    },
+    format: ["esm"],
+    dts: true,
+    clean: true,
+    sourcemap: true,
+    target: "node20",
+  },
+  {
+    entry: {
+      cli: "bin/ds-coverage.ts",
+    },
+    format: ["esm"],
+    dts: false,
+    sourcemap: true,
+    target: "node20",
+    banner: {
+      js: "#!/usr/bin/env node",
+    },
+  },
+]);
