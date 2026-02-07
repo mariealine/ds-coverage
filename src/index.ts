@@ -171,11 +171,11 @@ export async function run(options: RunOptions = {}): Promise<RunResult> {
     const ms = migration.summary;
     log("");
     log(`  Migration → ${migration.targetDS}:`);
-    log(`    Components to migrate: ${ms.totalMappings}`);
-    log(`    Usages detected:       ${ms.totalUsages} in ${ms.totalFilesAffected} files`);
-    if (ms.byComplexity.simple.count > 0) log(`    ✅ Simple:   ${ms.byComplexity.simple.count} components (${ms.byComplexity.simple.usages} usages)`);
-    if (ms.byComplexity.moderate.count > 0) log(`    ⚠️  Moderate: ${ms.byComplexity.moderate.count} components (${ms.byComplexity.moderate.usages} usages)`);
-    if (ms.byComplexity.complex.count > 0) log(`    🔴 Complex:  ${ms.byComplexity.complex.count} components (${ms.byComplexity.complex.usages} usages)`);
+    log(`    To migrate: ${ms.totalToMigrate} (${ms.totalMigrated} already migrated)`);
+    log(`    Usages:     ${ms.totalUsages} in ${ms.totalFilesAffected} files`);
+    if (ms.byComplexity.simple.count > 0) log(`    ✅ Simple:   ${ms.byComplexity.simple.count} (${ms.byComplexity.simple.usages} usages)`);
+    if (ms.byComplexity.moderate.count > 0) log(`    ⚠️  Moderate: ${ms.byComplexity.moderate.count} (${ms.byComplexity.moderate.usages} usages)`);
+    if (ms.byComplexity.complex.count > 0) log(`    🔴 Complex:  ${ms.byComplexity.complex.count} (${ms.byComplexity.complex.usages} usages)`);
   }
 
   if (!options.dryRun) {

@@ -173,6 +173,7 @@ export function analyzeMigration(
     // Sort files by total occurrences descending
     files.sort((a, b) => b.totalOccurrences - a.totalOccurrences);
 
+    const migrated = totalUsages === 0;
     components.push({
       source: mapping.source,
       target: mapping.target,
@@ -185,19 +186,22 @@ export function analyzeMigration(
       totalUsages,
       filesAffected: files.length,
       files,
+      migrated,
     });
   }
 
-  // Sort: within each complexity group, by total usages descending
+  // Sort: to-migrate first (usages > 0), then by complexity, then by usages descending; migrated last
   const complexityOrder: MigrationComplexity[] = ["simple", "moderate", "complex"];
   components.sort((a, b) => {
+    if (a.migrated !== b.migrated) return a.migrated ? 1 : -1; // to-migrate first
     const ca = complexityOrder.indexOf(a.complexity);
     const cb = complexityOrder.indexOf(b.complexity);
     if (ca !== cb) return ca - cb;
     return b.totalUsages - a.totalUsages;
   });
 
-  // Build summary
+  // Build summary: totalToMigrate / totalMigrated, byComplexity only for to-migrate
+  const toMigrate = components.filter((c) => !c.migrated);
   const byComplexity: MigrationReport["summary"]["byComplexity"] = {
     simple: { count: 0, usages: 0, files: 0 },
     moderate: { count: 0, usages: 0, files: 0 },
@@ -206,7 +210,7 @@ export function analyzeMigration(
 
   const allAffectedFiles = new Set<string>();
 
-  for (const comp of components) {
+  for (const comp of toMigrate) {
     byComplexity[comp.complexity].count++;
     byComplexity[comp.complexity].usages += comp.totalUsages;
     const filesInGroup = new Set(comp.files.map((f) => f.path));
@@ -218,7 +222,9 @@ export function analyzeMigration(
     targetDS: config.migration.targetDS,
     summary: {
       totalMappings: components.length,
-      totalUsages: components.reduce((s, c) => s + c.totalUsages, 0),
+      totalToMigrate: toMigrate.length,
+      totalMigrated: components.length - toMigrate.length,
+      totalUsages: toMigrate.reduce((s, c) => s + c.totalUsages, 0),
       totalFilesAffected: allAffectedFiles.size,
       byComplexity,
     },

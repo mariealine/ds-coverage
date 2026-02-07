@@ -169,6 +169,8 @@ export interface MigrationComponentReport {
   filesAffected: number;
   /** Files with usage details */
   files: MigrationFileUsage[];
+  /** True when no source usages remain (migration complete for this component) */
+  migrated: boolean;
 }
 
 export interface MigrationFileUsage {
@@ -186,9 +188,15 @@ export interface MigrationReport {
   targetDS: string;
   /** Summary stats */
   summary: {
+    /** Total mapping definitions (all components in config) */
     totalMappings: number;
+    /** Components that still have source usages (to migrate) */
+    totalToMigrate: number;
+    /** Components with 0 source usages (migration complete) */
+    totalMigrated: number;
     totalUsages: number;
     totalFilesAffected: number;
+    /** Counts and usages only for components with usages > 0 (to migrate) */
     byComplexity: Record<MigrationComplexity, {
       count: number;
       usages: number;

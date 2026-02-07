@@ -306,6 +306,7 @@ let apiSearchQuery = '';
 const openCompDetails = new Set();
 let migComplexityFilter = 'all';
 let migSearchQuery = '';
+let migShowFilter = 'toMigrate'; // 'toMigrate' | 'migrated' | 'all'
 const openMigFiles = new Set();
 
 async function loadReport() {
@@ -475,12 +476,31 @@ function renderMigration() {
   const ms = mig.summary;
   if (ms.totalMappings === 0) return '<div class="empty-state"><div class="icon">✅</div><h2 class="ts-xl-sb">No components to migrate</h2></div>';
 
-  // Filter components
-  let components = mig.components;
+  // Support older reports without totalToMigrate/totalMigrated/migrated
+  const totalToMigrate = ms.totalToMigrate ?? ms.totalMappings;
+  const totalMigrated = ms.totalMigrated ?? 0;
+  const componentsWithMigrated = mig.components.map(c => ({ ...c, migrated: c.migrated ?? (c.totalUsages === 0) }));
+
+  // Apply view filter: toMigrate (default), migrated, or all
+  let components = componentsWithMigrated;
+  if (migShowFilter === 'toMigrate') components = components.filter(c => !c.migrated);
+  else if (migShowFilter === 'migrated') components = components.filter(c => c.migrated);
   if (migComplexityFilter !== 'all') components = components.filter(c => c.complexity === migComplexityFilter);
   if (migSearchQuery) { const q = migSearchQuery.toLowerCase(); components = components.filter(c => c.source.toLowerCase().includes(q) || c.target.toLowerCase().includes(q)); }
 
-  // Group by complexity
+  // When showing only "to migrate" and none left, show success state
+  if (migShowFilter === 'toMigrate' && totalToMigrate === 0) {
+    const heroHtml = `<div class="hero" style="grid-template-columns: 1fr"><div class="hero-stats" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
+      <div class="stat"><div class="stat-value" style="color:var(--color-success)">0</div><div class="stat-label ts-xxs-m">To migrate</div></div>
+      <div class="stat"><div class="stat-value" style="color:var(--color-success)">${totalMigrated}</div><div class="stat-label ts-xxs-m">Migrated</div></div>
+    </div></div>`;
+    return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Migration Plan → ${esc(mig.targetDS)}</h2>
+    <p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">All mapped components are migrated. No source usages detected.</p>
+    ${heroHtml}
+    <div class="empty-state" style="margin-top:var(--space-24)"><div class="icon">✅</div><h2 class="ts-xl-sb">All components migrated</h2><p class="ts-d-r" style="margin-top:var(--space-8)">Switch to "Migrated" to see the list, or add new mappings in your config.</p></div>`;
+  }
+
+  // Group by complexity (and for migrated view, group migrated cards)
   const groups = { simple: [], moderate: [], complex: [] };
   for (const c of components) groups[c.complexity].push(c);
 
@@ -491,10 +511,11 @@ function renderMigration() {
     complex: 'Significant refactoring — different API, business logic to adapt, tests to rewrite.'
   };
 
-  // Hero stats
+  // Hero stats: to migrate (main) + migrated count
   const heroHtml = `<div class="hero" style="grid-template-columns: 1fr">
     <div class="hero-stats" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
-      <div class="stat"><div class="stat-value">${ms.totalMappings}</div><div class="stat-label ts-xxs-m">Components to migrate</div></div>
+      <div class="stat"><div class="stat-value">${totalToMigrate}</div><div class="stat-label ts-xxs-m">To migrate</div></div>
+      <div class="stat"><div class="stat-value" style="color:var(--color-success)">${totalMigrated}</div><div class="stat-label ts-xxs-m">Migrated</div></div>
       <div class="stat"><div class="stat-value">${ms.totalUsages}</div><div class="stat-label ts-xxs-m">Usages detected</div></div>
       <div class="stat"><div class="stat-value">${ms.totalFilesAffected}</div><div class="stat-label ts-xxs-m">Files affected</div></div>
       <div class="stat" style="cursor:pointer;${migComplexityFilter==='simple'?'box-shadow:0 0 0 2px var(--color-success);':''}" onclick="setMigFilter('simple')"><div class="stat-value" style="color:var(--color-success)">${ms.byComplexity.simple.count}</div><div class="stat-label ts-xxs-m">Simple</div></div>
@@ -503,10 +524,14 @@ function renderMigration() {
     </div>
   </div>`;
 
-  // Toolbar
+  // Toolbar: view filter (To migrate / Migrated / All) + complexity + search
   const toolbarHtml = `<div class="toolbar">
-    <div class="mig-complexity-filter">
-      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='all'?'active':''}" onclick="setMigFilter('all')">All (${ms.totalMappings})</button>
+    <div class="mig-complexity-filter" style="flex-wrap:wrap;gap:var(--space-8)">
+      <button class="api-loc-btn ts-xs-m ${migShowFilter==='toMigrate'?'active':''}" onclick="setMigShowFilter('toMigrate')">To migrate (${totalToMigrate})</button>
+      <button class="api-loc-btn ts-xs-m ${migShowFilter==='migrated'?'active':''}" onclick="setMigShowFilter('migrated')">✓ Migrated (${totalMigrated})</button>
+      <button class="api-loc-btn ts-xs-m ${migShowFilter==='all'?'active':''}" onclick="setMigShowFilter('all')">All (${ms.totalMappings})</button>
+      <span style="width:1px;height:20px;background:var(--border-default);margin:0 var(--space-4)"></span>
+      <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='all'?'active':''}" onclick="setMigFilter('all')">All</button>
       <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='simple'?'active':''}" onclick="setMigFilter('simple')">✅ Simple (${ms.byComplexity.simple.count})</button>
       <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='moderate'?'active':''}" onclick="setMigFilter('moderate')">⚠️ Moderate (${ms.byComplexity.moderate.count})</button>
       <button class="api-loc-btn ts-xs-m ${migComplexityFilter==='complex'?'active':''}" onclick="setMigFilter('complex')">🔴 Complex (${ms.byComplexity.complex.count})</button>
@@ -579,15 +604,18 @@ function renderMigCard(c) {
     </div>
   </div>` : '';
 
-  return `<div class="mig-card">
+  const migratedBadge = c.migrated ? '<span class="mig-section-badge simple ts-xxs-m" style="background:var(--color-success);color:var(--text-complementary)">✓ Migrated</span>' : '';
+  const cardStyle = c.migrated ? 'opacity:0.85;border-color:var(--color-success);' : '';
+  return `<div class="mig-card" style="${cardStyle}">
     <div class="mig-card-header">
       <div class="mig-swap">
         <span class="mig-comp-name source ts-xs-m">${esc(c.source)}</span>
         <span class="mig-arrow">→</span>
         <span class="mig-comp-name target ts-xs-m">${esc(c.target)}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:var(--space-12)">
-        ${c.effort ? `<span class="ts-xxs-m" style="color:var(--text-secondary)">⏱ ${esc(c.effort)}</span>` : ''}
+      <div style="display:flex;align-items:center;gap:var(--space-12);flex-wrap:wrap">
+        ${migratedBadge}
+        ${c.effort && !c.migrated ? `<span class="ts-xxs-m" style="color:var(--text-secondary)">⏱ ${esc(c.effort)}</span>` : ''}
         <span class="mig-section-badge ${c.complexity} ts-xxs-m">${c.complexity}</span>
       </div>
     </div>
@@ -627,6 +655,7 @@ function onApiSearch(v) { apiSearchQuery = v; render(); const i = document.query
 function toggleCompDetail(p) { if (openCompDetails.has(p)) openCompDetails.delete(p); else openCompDetails.add(p); render(); }
 function togglePhaseFiles(id) { if (openPhases.has(id)) openPhases.delete(id); else openPhases.add(id); render(); }
 function setMigFilter(level) { migComplexityFilter = migComplexityFilter === level ? 'all' : level; render(); }
+function setMigShowFilter(view) { migShowFilter = view; render(); }
 function onMigSearch(v) { migSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
 function toggleMigFiles(src) { if (openMigFiles.has(src)) openMigFiles.delete(src); else openMigFiles.add(src); render(); }
 
