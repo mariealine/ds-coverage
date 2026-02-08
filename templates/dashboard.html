@@ -142,14 +142,14 @@
     .detail-panel.open { display: block; }
     .detail-close { background: none; border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-4) 10px; cursor: pointer; font-family: var(--font-family); }
     .violation-list { font-family: var(--font-family-mono); line-height: 1.8; }
-    .violation-item { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-8) var(--space-12); border-radius: var(--radius-6); }
+    .violation-item { display: flex; gap: var(--space-12); padding: var(--space-4) var(--space-8); border-radius: var(--radius-4); }
     .violation-item:hover { background: var(--bg-base-primary-hover); }
-    .violation-tag { display: inline-flex; align-items: center; gap: var(--space-6); padding: var(--space-2) var(--space-10); border-radius: var(--radius-6); font-weight: var(--font-weight-medium); flex-shrink: 0; }
-    .violation-tag .violation-tag-line a { color: inherit; text-decoration: none; opacity: 0.9; }
-    .violation-tag .violation-tag-line a:hover { text-decoration: underline; opacity: 1; }
-    .violation-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-    .violation-match { font-weight: var(--font-weight-semibold); word-break: break-all; }
-    .violation-context { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9em; }
+    .violation-line { color: var(--text-tertiary); min-width: 50px; text-align: right; }
+    .violation-line a { color: var(--color-accent); text-decoration: none; }
+    .violation-line a:hover { text-decoration: underline; }
+    .violation-label { font-weight: var(--font-weight-medium); }
+    .violation-match { color: var(--color-danger); font-weight: var(--font-weight-semibold); min-width: 120px; }
+    .violation-context { color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Pagination */
     .pagination { display: flex; justify-content: space-between; align-items: center; padding: var(--space-12) var(--space-16); color: var(--text-secondary); background: var(--bg-base-primary-hover); border-top: 1px solid var(--border-default); }
@@ -204,10 +204,8 @@
     .token-bar-fill { height: 100%; border-radius: var(--space-4); transition: width 0.3s; }
     .token-score-pct { min-width: 44px; text-align: right; font-weight: var(--font-weight-semibold); }
     .token-violation-list { font-family: var(--font-family-mono); line-height: 1.8; margin-top: var(--space-12); }
-    .token-violation-item { display: flex; align-items: flex-start; gap: var(--space-12); padding: var(--space-8) var(--space-12); border-radius: var(--radius-6); }
+    .token-violation-item { display: flex; gap: var(--space-12); padding: var(--space-4) var(--space-8); border-radius: var(--radius-4); }
     .token-violation-item:hover { background: var(--bg-base-primary-hover); }
-    .token-violation-item .violation-tag { display: inline-flex; align-items: center; gap: var(--space-6); padding: var(--space-2) var(--space-10); border-radius: var(--radius-6); font-weight: var(--font-weight-medium); flex-shrink: 0; }
-    .token-violation-item .violation-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 
     /* API Rework */
     .api-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-12); align-content: center; }
@@ -282,49 +280,10 @@
     .spinner { width: 32px; height: 32px; border: 3px solid var(--border-default); border-top-color: var(--color-accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Migration Modal */
-    .migration-modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: var(--space-24);
-      overflow-y: auto;
-    }
-    .migration-modal-content {
-      background: var(--bg-base-primary);
-      border-radius: var(--radius-12);
-      padding: var(--space-24);
-      max-width: 900px;
-      width: 100%;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    }
-    .stat.clickable {
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      border: 1px solid transparent;
-    }
-    .stat.clickable:hover {
-      border-color: var(--color-accent);
-    }
-    .stat.clickable.active {
-      border-color: var(--color-accent);
-      box-shadow: 0 0 0 1px var(--color-accent);
-    }
-
     @media (max-width: 768px) {
       .hero { grid-template-columns: 1fr; }
       .flags { grid-template-columns: 1fr; }
       .categories { grid-template-columns: 1fr 1fr; }
-      .migration-modal-content {
-        padding: var(--space-16);
-        max-width: 100%;
-      }
     }
   </style>
 </head>
@@ -370,9 +329,7 @@ let migComplexityFilter = 'all';
 let migSearchQuery = '';
 let migShowFilter = 'toMigrate'; // 'toMigrate' | 'migrated' | 'all'
 const openMigFiles = new Set();
-let openMigrationModal = null; // Component source name or null
-let refactorRadarRiskFilter = 'all'; // 'all' | 'safe' | 'careful' | 'page-level'
-let refactorRadarSearchQuery = '';
+let refactorRadarRiskFilter = 'all'; // 'all' | 'safe' | 'careful' | 'page-level' | 'pure' | 'impure' | 'server-coupled'
 
 async function loadReport() {
   if (window.__DS_REPORT__) { report = window.__DS_REPORT__; render(); return; }
@@ -407,14 +364,53 @@ function renderBadge(count, catKey) {
 }
 
 function getFilteredFiles() {
-  let files = report.files;
+  const pathSet = new Set();
+  for (const f of report.files || []) pathSet.add(f.path);
+  if (CFG.businessLogicAnalysisEnabled && report.businessLogic) {
+    for (const p of Object.keys(report.businessLogic)) pathSet.add(p);
+  }
+  if (CFG.purityEnabled && report.importBoundary) {
+    for (const p of Object.keys(report.importBoundary)) pathSet.add(p);
+  }
+  let files = [];
+  for (const path of pathSet) {
+    const file = (report.files || []).find(f => f.path === path) || {
+      path,
+      violations: {},
+      flags: { migrateSimple: [], migrateComplex: [], todo: [] },
+      totalViolations: 0,
+      totalFlags: 0
+    };
+    const businessLogic = (CFG.businessLogicAnalysisEnabled && report.businessLogic?.[path]) || null;
+    const importBoundary = (CFG.purityEnabled && report.importBoundary?.[path]) || null;
+    files.push({ ...file, businessLogic, importBoundary });
+  }
   if (activeCategory) files = files.filter(f => (f.violations[activeCategory]?.length || 0) > 0);
   if (searchQuery) { const q = searchQuery.toLowerCase(); files = files.filter(f => f.path.toLowerCase().includes(q)); }
+  if (refactorRadarRiskFilter !== 'all') {
+    files = files.filter(f => {
+      if (refactorRadarRiskFilter === 'safe' || refactorRadarRiskFilter === 'careful' || refactorRadarRiskFilter === 'page-level') {
+        return f.businessLogic?.complexity?.riskLevel === refactorRadarRiskFilter;
+      }
+      if (refactorRadarRiskFilter === 'pure' || refactorRadarRiskFilter === 'impure') {
+        return f.importBoundary?.purity === refactorRadarRiskFilter;
+      }
+      if (refactorRadarRiskFilter === 'server-coupled') {
+        return f.importBoundary?.reasons?.some(r => r.type === 'server-api');
+      }
+      return true;
+    });
+  }
   files = [...files].sort((a, b) => {
     let av, bv;
     if (sortField === 'path') { av = a.path; bv = b.path; return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av); }
+    if (sortField === 'complexity') {
+      av = a.businessLogic?.complexity?.score ?? 0;
+      bv = b.businessLogic?.complexity?.score ?? 0;
+      return sortDir === 'asc' ? av - bv : bv - av;
+    }
     if (CAT_KEYS.includes(sortField)) { av = a.violations[sortField]?.length || 0; bv = b.violations[sortField]?.length || 0; }
-    else { av = a[sortField] || 0; bv = b[sortField] || 0; }
+    else { av = a[sortField] ?? 0; bv = b[sortField] ?? 0; }
     return sortDir === 'asc' ? av - bv : bv - av;
   });
   return files;
@@ -429,7 +425,6 @@ function renderHeader() {
   }
   if (CFG.migrationEnabled) tabs.push({ id: 'migration', label: 'Migration Plan' });
   if (CFG.roadmapEnabled) tabs.push({ id: 'roadmap', label: 'Refactoring Roadmap' });
-  if (CFG.businessLogicAnalysisEnabled || CFG.purityEnabled) tabs.push({ id: 'refactor-radar', label: 'Refactor Radar' });
   return `<div class="header"><div><h1>${esc(CFG.title)}</h1><div class="subtitle ts-d-r">${esc(CFG.subtitle)}</div></div><div><span class="timestamp ts-xxs-r">Generated: ${new Date(report.generatedAt).toLocaleString()}</span></div></div><div class="tab-bar">${tabs.map(t => `<button class="tab-btn ts-d-m ${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">${t.label}</button>`).join('')}</div>`;
 }
 
@@ -453,13 +448,49 @@ function renderMetricsFileCard(f) {
 
   const catLabel = (cat) => CATS[cat]?.label || (cat === 'flag-simple' ? '@ds-migrate: simple' : cat === 'flag-complex' ? '@ds-migrate: complex' : cat === 'flag-todo' ? '@ds-todo' : cat);
   const violationsBody = allV.length > 0
-    ? `<div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-tag ts-xxs-m" style="background:var(--bg-base-secondary);border-left:3px solid ${c}"><span class="violation-tag-line" style="color:var(--text-tertiary)">${lineLink(f.path, v.line)}</span><span class="violation-tag-sep" style="color:var(--text-tertiary)">·</span><span class="violation-tag-label" style="color:${c}">${esc(catLabel(v.cat))}</span></span><div class="violation-content"><span class="violation-match ts-xxs-m" style="color:${c}">${esc(v.match)}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div></div>`; }).join('')}</div>`
+    ? `<div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-line ts-xxs-r">${lineLink(f.path, v.line)}</span><span class="violation-label ts-xxs-m" style="color:${c};min-width:100px">${esc(catLabel(v.cat))}</span><span class="violation-match ts-xxs-m" style="color:${c}">${esc(v.match)}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div>`; }).join('')}</div>`
     : '<div class="ts-xs-r" style="color:var(--text-secondary)">No violations in this file.</div>';
+
+  let refactorRadarBody = '';
+  if (f.businessLogic) {
+    const r = f.businessLogic;
+    const riskColor = r.complexity?.riskLevel === 'safe' ? 'var(--color-success)' : r.complexity?.riskLevel === 'careful' ? 'var(--color-warning)' : 'var(--color-danger)';
+    const riskLabel = r.complexity?.riskLevel === 'safe' ? 'Safe' : r.complexity?.riskLevel === 'careful' ? 'Careful' : 'Page-level';
+    const nativeHtml = Object.entries(r.nativeHtmlElements || {}).filter(([k,v]) => k !== 'total' && v > 0).map(([k,v]) => `&lt;${k}&gt;: ${v}`).join(', ') || 'None';
+    const signals = [];
+    if (r.businessLogicSignals?.apiCalls > 0) signals.push(`${r.businessLogicSignals.apiCalls} API call${r.businessLogicSignals.apiCalls > 1 ? 's' : ''}`);
+    if (r.businessLogicSignals?.useStateCount > 0) signals.push(`${r.businessLogicSignals.useStateCount} useState`);
+    if (r.businessLogicSignals?.useEffectCount > 0) signals.push(`${r.businessLogicSignals.useEffectCount} useEffect`);
+    if (r.businessLogicSignals?.fileUploads) signals.push('File uploads');
+    if (r.businessLogicSignals?.authFlows) signals.push('Auth flows');
+    if (r.businessLogicSignals?.formHandling) signals.push('Form handling');
+    const actions = (r.suggestedRefactor?.suggestedActions || []).map(a => `<li>${esc(a)}</li>`).join('');
+    refactorRadarBody += `<div class="metrics-refactor-block" style="margin-top:var(--space-16);padding-top:var(--space-16);border-top:1px solid var(--border-default)">
+      <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-8)">Refactor risks — ${riskLabel} (score: ${r.complexity?.score ?? 0})</div>
+      <div class="ts-xs-r" style="color:var(--text-primary);margin-bottom:var(--space-8)">${esc(r.suggestedRefactor?.rationale || '')}</div>
+      <div style="margin-bottom:var(--space-8)"><span class="ts-xxs-m" style="color:var(--text-tertiary)">Native HTML:</span> <span class="ts-xxs-r">${nativeHtml}</span></div>
+      <div style="margin-bottom:var(--space-8)"><span class="ts-xxs-m" style="color:var(--text-tertiary)">Signals:</span> ${signals.length ? signals.map(s => `<span class="comp-feature ts-xxs-m warn" style="margin-right:var(--space-4)">${esc(s)}</span>`).join('') : '<span class="ts-xxs-r">None</span>'}</div>
+      ${actions ? `<div><span class="ts-xxs-m" style="color:var(--text-tertiary)">Suggested:</span><ul style="margin:4px 0 0 var(--space-16);padding:0" class="ts-xs-r">${actions}</ul></div>` : ''}
+    </div>`;
+  }
+  if (f.importBoundary) {
+    const r = f.importBoundary;
+    const purityBadge = r.purity === 'pure' ? '<span class="mig-section-badge simple ts-xxs-m">Pure</span>' : '<span class="mig-section-badge complex ts-xxs-m">Impure</span>';
+    const reasons = (r.reasons || []).map(reason => `<li>${esc(reason.message)}${reason.line ? ` (L${reason.line})` : ''}</li>`).join('');
+    refactorRadarBody += `<div class="metrics-refactor-block" style="margin-top:var(--space-16);padding-top:var(--space-16);border-top:1px solid var(--border-default)">
+      <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-8)">Import boundary — ${purityBadge} (score: ${r.score}/100)</div>
+      ${reasons ? `<ul style="margin:0;padding-left:var(--space-16)" class="ts-xs-r">${reasons}</ul>` : ''}
+    </div>`;
+  }
 
   return `<div class="metrics-file-card">
     <div class="metrics-file-card-header" onclick="toggleMetricsFileDetail('${pathEsc}')">
       <div class="metrics-file-card-left">
-        <div class="ts-d-m" style="font-weight:var(--font-weight-semibold);font-family:var(--font-family-mono)">${esc(f.path)}</div>
+        <div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap">
+          <div class="ts-d-m" style="font-weight:var(--font-weight-semibold);font-family:var(--font-family-mono)">${esc(f.path)}</div>
+          ${f.businessLogic ? `<span class="mig-section-badge ${f.businessLogic.complexity?.riskLevel || 'careful'} ts-xxs-m">${f.businessLogic.complexity?.riskLevel === 'safe' ? 'Safe' : f.businessLogic.complexity?.riskLevel === 'careful' ? 'Careful' : 'Page-level'}</span>` : ''}
+          ${f.importBoundary ? `<span class="mig-section-badge ${f.importBoundary.purity === 'pure' ? 'simple' : 'complex'} ts-xxs-m">${f.importBoundary.purity === 'pure' ? 'Pure' : 'Impure'}</span>` : ''}
+        </div>
       </div>
       <div class="metrics-file-card-right">
         <span title="Total violations">${f.totalViolations > 0 ? `<strong class="ts-xs-m" style="color:var(--color-danger)">${f.totalViolations}</strong>` : '<span style="color:var(--color-success)" class="ts-xs-m">✓</span>'}</span>
@@ -469,6 +500,7 @@ function renderMetricsFileCard(f) {
     </div>
     <div class="metrics-file-card-body ${isOpen ? 'open' : ''}">
       ${violationsBody}
+      ${refactorRadarBody}
     </div>
   </div>`;
 }
@@ -480,7 +512,21 @@ function renderMetrics() {
   const pageFiles = files.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const maxV = Math.max(...CAT_KEYS.map(k => s.categories[k]?.totalViolations || 0), 1);
 
-  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Metrics — App</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Design system compliance across all ${s.totalFilesScanned} files. Violations by category, flags, and per-file breakdown.</p>
+  const hasRefactorAnalysis = CFG.businessLogicAnalysisEnabled || CFG.purityEnabled;
+  const blReports = Object.values(report.businessLogic || {});
+  const safeCount = blReports.filter(r => r.complexity?.riskLevel === 'safe').length;
+  const carefulCount = blReports.filter(r => r.complexity?.riskLevel === 'careful').length;
+  const pageLevelCount = blReports.filter(r => r.complexity?.riskLevel === 'page-level').length;
+  const purityReports = Object.values(report.importBoundary || {});
+  const pureCount = purityReports.filter(r => r.purity === 'pure').length;
+  const impureCount = purityReports.filter(r => r.purity === 'impure').length;
+  const riskFilterBtns = hasRefactorAnalysis ? `
+    <span class="ts-xxs-m" style="color:var(--text-tertiary);margin-right:var(--space-4)">Risk:</span>
+    <button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='all'?'active':''}" onclick="setRefactorRadarFilter('all')">All</button>
+    ${CFG.businessLogicAnalysisEnabled ? `<button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='safe'?'active':''}" onclick="setRefactorRadarFilter('safe')">Safe (${safeCount})</button><button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='careful'?'active':''}" onclick="setRefactorRadarFilter('careful')">Careful (${carefulCount})</button><button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='page-level'?'active':''}" onclick="setRefactorRadarFilter('page-level')">Page-level (${pageLevelCount})</button>` : ''}
+    ${CFG.purityEnabled ? `<button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='pure'?'active':''}" onclick="setRefactorRadarFilter('pure')">Pure (${pureCount})</button><button class="api-loc-btn ts-xxs-m ${refactorRadarRiskFilter==='impure'?'active':''}" onclick="setRefactorRadarFilter('impure')">Impure (${impureCount})</button>` : ''}
+  ` : '';
+  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Metrics — App</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Design system compliance and refactor risks across all ${s.totalFilesScanned} files. Violations (what to edit) and risk signals (what to be aware of when migrating or refactoring).</p>
   <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(s.coveragePercent, 160)}</div>
   <div class="hero-stats">
     <div class="stat"><div class="stat-value">${s.totalFilesScanned}</div><div class="stat-label ts-xxs-m">Files scanned</div></div>
@@ -496,8 +542,11 @@ function renderMetrics() {
     <div class="flag-card"><span class="flag-badge complex ts-xxs-m">@ds-migrate: complex</span><span class="flag-count">${s.flags.migrateComplex}</span></div>
     <div class="flag-card"><span class="flag-badge todo ts-xxs-m">@ds-todo</span><span class="flag-count">${s.flags.todo}</span></div>
   </div>
-  <div class="toolbar"><input class="search-input ts-xs-r" type="text" placeholder="Filter by file path..." value="${searchQuery}" oninput="onSearch(this.value)" />
-  <select class="sort-select ts-xs-r" onchange="onSort(this.value)"><option value="totalViolations-desc" ${sortField==='totalViolations'&&sortDir==='desc'?'selected':''}>Most violations</option><option value="totalViolations-asc" ${sortField==='totalViolations'&&sortDir==='asc'?'selected':''}>Least violations</option><option value="path-asc" ${sortField==='path'&&sortDir==='asc'?'selected':''}>Name A-Z</option>${CAT_KEYS.map(k=>`<option value="${k}-desc">${CATS[k].label} ↓</option>`).join('')}</select></div>
+  <div class="toolbar" style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-12)">
+    <input class="search-input ts-xs-r" type="text" placeholder="Filter by file path..." value="${searchQuery}" oninput="onSearch(this.value)" />
+    <select class="sort-select ts-xs-r" onchange="onSort(this.value)"><option value="totalViolations-desc" ${sortField==='totalViolations'&&sortDir==='desc'?'selected':''}>Most violations</option><option value="totalViolations-asc" ${sortField==='totalViolations'&&sortDir==='asc'?'selected':''}>Least violations</option><option value="complexity-desc" ${sortField==='complexity'&&sortDir==='desc'?'selected':''}>Highest risk first</option><option value="complexity-asc" ${sortField==='complexity'&&sortDir==='asc'?'selected':''}>Lowest risk first</option><option value="path-asc" ${sortField==='path'&&sortDir==='asc'?'selected':''}>Name A-Z</option>${CAT_KEYS.map(k=>`<option value="${k}-desc">${CATS[k].label} ↓</option>`).join('')}</select>
+    ${riskFilterBtns}
+  </div>
   <div class="metrics-badge-legend ts-xxs-m" style="display:flex;align-items:center;gap:var(--space-12);flex-wrap:wrap;color:var(--text-tertiary);margin-bottom:var(--space-12)"><span>Total</span>${CAT_KEYS.map(k=>`<span>${CATS[k]?.label || k}</span>`).join('')}<span>Flags</span></div>
   <div class="file-table-container">
   ${pageFiles.length === 0 ? '<div class="empty-state ts-d-r">No files match.</div>' : pageFiles.map(f => renderMetricsFileCard(f)).join('')}
@@ -526,7 +575,7 @@ function renderTokenCard(c) {
       return `<a href="cursor://file/${encodeURI(fullPath)}:${line}" title="Open in Cursor" class="ts-xxs-r" style="color:var(--color-accent);text-decoration:none">L${line}</a>`;
     };
     const catLabel = (cat) => CATS[cat]?.label || (cat === 'flag-simple' ? '@ds-migrate: simple' : cat === 'flag-complex' ? '@ds-migrate: complex' : cat === 'flag-todo' ? '@ds-todo' : cat);
-    violationsBody = `<div class="token-violation-list"><div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-8)">Violations</div>${allV.map(v => { const catColor = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="token-violation-item"><span class="violation-tag ts-xxs-m" style="background:var(--bg-base-secondary);border-left:3px solid ${catColor}"><span class="violation-tag-line" style="color:var(--text-tertiary)">${lineLink(file.path, v.line)}</span><span class="violation-tag-sep" style="color:var(--text-tertiary)">·</span><span class="violation-tag-label" style="color:${catColor}">${esc(catLabel(v.cat))}</span></span><div class="violation-content"><span class="ts-xxs-m violation-match" style="color:${catColor}">${esc(v.match)}</span><span class="ts-xxs-r" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.context)}</span></div></div>`; }).join('')}</div>`;
+    violationsBody = `<div class="token-violation-list"><div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-8)">Violations</div>${allV.map(v => { const catColor = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="token-violation-item"><span class="ts-xxs-r" style="min-width:40px;text-align:right;color:var(--text-tertiary)">${lineLink(file.path, v.line)}</span><span class="ts-xxs-m violation-label" style="color:${catColor};min-width:100px">${esc(catLabel(v.cat))}</span><span class="ts-xxs-m" style="color:${catColor};min-width:120px">${esc(v.match)}</span><span class="ts-xxs-r" style="color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v.context)}</span></div>`; }).join('')}</div>`;
   } else if (tc.totalViolations === 0) {
     violationsBody = '<div class="ts-xs-r" style="color:var(--color-success)">✓ No violations</div>';
   } else {
@@ -631,9 +680,6 @@ function renderRoadmap() {
 }
 
 function renderMigration() {
-  if (!CFG.migrationEnabled) {
-    return '<div class="empty-state"><div class="icon">🔄</div><h2 class="ts-xl-sb">Migration Plan Disabled</h2><p class="ts-d-r" style="margin-top:var(--space-8)">Enable migration in your config:<br/><code style="background:var(--bg-base-secondary);padding:var(--space-4) var(--space-8);border-radius:var(--radius-4);margin-top:var(--space-8);display:inline-block">migration: { enabled: true, mappings: [...] }</code></p></div>';
-  }
   const mig = report.migration;
   if (!mig) return '<div class="empty-state"><div class="icon">🔄</div><h2 class="ts-xl-sb">No migration plan</h2><p class="ts-d-r" style="margin-top:var(--space-8);color:var(--text-secondary)">Enable <code>migration.enabled</code> and add <code>migration.mappings</code> in your ds-coverage config, then run the scan again.</p></div>';
   const ms = mig.summary;
@@ -833,13 +879,11 @@ function render() {
   html += `<div class="tab-content ${activeTab==='metrics'?'active':''}">${renderMetrics()}</div>`;
   if (CFG.componentAnalysisEnabled) {
     html += `<div class="tab-content ${activeTab==='tokens'?'active':''}">${renderTokens()}</div>`;
+    html += `<div class="tab-content ${activeTab==='api'?'active':''}">${renderApiRework()}</div>`;
   }
   if (CFG.migrationEnabled) html += `<div class="tab-content ${activeTab==='migration'?'active':''}">${renderMigration()}</div>`;
   if (CFG.roadmapEnabled) html += `<div class="tab-content ${activeTab==='roadmap'?'active':''}">${renderRoadmap()}</div>`;
-  if (CFG.businessLogicAnalysisEnabled || CFG.purityEnabled) html += `<div class="tab-content ${activeTab==='refactor-radar'?'active':''}">${renderRefactorRadar()}</div>`;
-  html += renderMigrationModal();
   document.getElementById('app').innerHTML = html;
-
 }
 
 function switchTab(t) { activeTab = t; render(); }
@@ -861,6 +905,7 @@ function setMigFilter(level) { migComplexityFilter = migComplexityFilter === lev
 function setMigShowFilter(view) { migShowFilter = view; render(); }
 function onMigSearch(v) { migSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
 function toggleMigFiles(src) { if (openMigFiles.has(src)) openMigFiles.delete(src); else openMigFiles.add(src); render(); }
+function setRefactorRadarFilter(level) { refactorRadarRiskFilter = refactorRadarRiskFilter === level ? 'all' : level; currentPage = 0; render(); }
 
 function showDetail(filePath) {
   detailFile = filePath;
@@ -881,300 +926,10 @@ function showDetail(filePath) {
   };
   const panel = document.getElementById('detail-panel');
   panel.className = 'detail-panel open';
-  const catLabel = (cat) => CATS[cat]?.label || (cat === 'flag-simple' ? '@ds-migrate: simple' : cat === 'flag-complex' ? '@ds-migrate: complex' : cat === 'flag-todo' ? '@ds-todo' : cat);
-  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-16)"><h3 class="ts-d-m" style="font-family:var(--font-family-mono)">${file.path}</h3><button class="detail-close ts-xxs-m" onclick="closeDetail()">Close</button></div><div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-tag ts-xxs-m" style="background:var(--bg-base-secondary);border-left:3px solid ${c}"><span class="violation-tag-line" style="color:var(--text-tertiary)">${lineLink(file.path, v.line)}</span><span class="violation-tag-sep" style="color:var(--text-tertiary)">·</span><span class="violation-tag-label" style="color:${c}">${esc(catLabel(v.cat))}</span></span><div class="violation-content"><span class="violation-match ts-xxs-m" style="color:${c}">${esc(v.match)}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div></div>`; }).join('')}</div>`;
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-16)"><h3 class="ts-d-m" style="font-family:var(--font-family-mono)">${file.path}</h3><button class="detail-close ts-xxs-m" onclick="closeDetail()">Close</button></div><div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-line ts-xxs-r">${lineLink(file.path, v.line)}</span><span class="violation-match ts-xxs-m" style="color:${c}">${v.match}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div>`; }).join('')}</div>`;
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function closeDetail() { detailFile = null; document.getElementById('detail-panel').className = 'detail-panel'; }
-
-function renderRefactorRadar() {
-  const hasBusinessLogic = report.businessLogic && Object.keys(report.businessLogic).length > 0;
-  const hasImportBoundary = CFG.purityEnabled && report.importBoundary && Object.keys(report.importBoundary).length > 0;
-  
-  if (!hasBusinessLogic && !hasImportBoundary) {
-    return '<div class="empty-state"><div class="icon">📊</div><h2 class="ts-xl-sb">No refactor analysis</h2><p class="ts-d-r" style="margin-top:var(--space-8)">Enable businessLogicAnalysis or purity in your ds-coverage config</p></div>';
-  }
-
-  // Business Logic Analysis Section
-  let businessLogicHtml = '';
-  if (hasBusinessLogic) {
-    let reports = Object.values(report.businessLogic);
-    
-    // Filter by risk level
-    if (refactorRadarRiskFilter !== 'all' && refactorRadarRiskFilter !== 'pure' && refactorRadarRiskFilter !== 'impure' && refactorRadarRiskFilter !== 'server-coupled') {
-      reports = reports.filter(r => r.complexity.riskLevel === refactorRadarRiskFilter);
-    }
-    
-    // Filter by search
-    if (refactorRadarSearchQuery) {
-      const q = refactorRadarSearchQuery.toLowerCase();
-      reports = reports.filter(r => r.path.toLowerCase().includes(q));
-    }
-
-    // Group by risk level
-    const byRisk = { safe: [], careful: [], 'page-level': [] };
-    for (const r of reports) {
-      byRisk[r.complexity.riskLevel].push(r);
-    }
-
-    const safeCount = byRisk.safe.length;
-    const carefulCount = byRisk.careful.length;
-    const pageLevelCount = byRisk['page-level'].length;
-    const total = safeCount + carefulCount + pageLevelCount;
-
-    businessLogicHtml = `<div style="margin-bottom:var(--space-32)">
-      <h3 class="ts-l-m" style="margin-bottom:var(--space-16)">Business Logic Analysis</h3>
-      <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(Math.round((safeCount / total * 100) || 0), 160)}</div>
-      <div class="hero-stats">
-        <div class="stat clickable ${refactorRadarRiskFilter==='safe'?'active':''}" onclick="setRefactorRadarFilter('safe')"><div class="stat-value" style="color:var(--color-success)">${safeCount}</div><div class="stat-label ts-xxs-m">Safe</div></div>
-        <div class="stat clickable ${refactorRadarRiskFilter==='careful'?'active':''}" onclick="setRefactorRadarFilter('careful')"><div class="stat-value" style="color:var(--color-warning)">${carefulCount}</div><div class="stat-label ts-xxs-m">Careful</div></div>
-        <div class="stat clickable ${refactorRadarRiskFilter==='page-level'?'active':''}" onclick="setRefactorRadarFilter('page-level')"><div class="stat-value" style="color:var(--color-danger)">${pageLevelCount}</div><div class="stat-label ts-xxs-m">Page-level</div></div>
-        <div class="stat"><div class="stat-value">${total}</div><div class="stat-label ts-xxs-m">Total files</div></div>
-      </div></div>
-      <div class="toolbar">
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='all'?'active':''}" onclick="setRefactorRadarFilter('all')">All (${total})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='safe'?'active':''}" onclick="setRefactorRadarFilter('safe')">Safe (${safeCount})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='careful'?'active':''}" onclick="setRefactorRadarFilter('careful')">Careful (${carefulCount})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='page-level'?'active':''}" onclick="setRefactorRadarFilter('page-level')">Page-level (${pageLevelCount})</button>
-        <input class="search-input ts-xs-r" type="text" placeholder="Search file path..." value="${refactorRadarSearchQuery}" oninput="onRefactorRadarSearch(this.value)" />
-      </div>
-      <div>${reports.map(r => {
-        const riskColor = r.complexity.riskLevel === 'safe' ? 'var(--color-success)' : r.complexity.riskLevel === 'careful' ? 'var(--color-warning)' : 'var(--color-danger)';
-        const riskLabel = r.complexity.riskLevel === 'safe' ? 'Safe' : r.complexity.riskLevel === 'careful' ? 'Careful' : 'Page-level';
-        return `<div class="comp-card">
-          <div>
-            <div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap;margin-bottom:var(--space-8)">
-              <span class="ts-d-m" style="font-weight:var(--font-weight-semibold)">${esc(r.path)}</span>
-              <span class="mig-section-badge ${r.complexity.riskLevel} ts-xxs-m">${riskLabel}</span>
-              <span class="ts-xxs-m" style="color:var(--text-secondary)">Score: ${r.complexity.score}</span>
-            </div>
-            <div style="font-family:var(--font-family-mono);color:var(--text-secondary)" class="ts-xxs-r">${esc(r.suggestedRefactor.rationale)}</div>
-            <div style="margin-top:var(--space-8)">
-              <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Native HTML Elements:</div>
-              <div style="display:flex;gap:var(--space-6);flex-wrap:wrap">
-                ${Object.entries(r.nativeHtmlElements).filter(([k,v]) => k !== 'total' && v > 0).map(([k,v]) => `<span class="comp-feature ts-xxs-m yes">&lt;${k}&gt;: ${v}</span>`).join('')}
-                ${r.nativeHtmlElements.total === 0 ? '<span class="ts-xxs-m" style="color:var(--text-tertiary)">None</span>' : ''}
-              </div>
-            </div>
-            <div style="margin-top:var(--space-8)">
-              <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Business Logic Signals:</div>
-              <div style="display:flex;gap:var(--space-6);flex-wrap:wrap">
-                ${r.businessLogicSignals.apiCalls > 0 ? `<span class="comp-feature ts-xxs-m warn">${r.businessLogicSignals.apiCalls} API call${r.businessLogicSignals.apiCalls > 1 ? 's' : ''}</span>` : ''}
-                ${r.businessLogicSignals.useStateCount > 0 ? `<span class="comp-feature ts-xxs-m warn">${r.businessLogicSignals.useStateCount} useState</span>` : ''}
-                ${r.businessLogicSignals.useEffectCount > 0 ? `<span class="comp-feature ts-xxs-m warn">${r.businessLogicSignals.useEffectCount} useEffect</span>` : ''}
-                ${r.businessLogicSignals.fileUploads ? `<span class="comp-feature ts-xxs-m warn">File uploads</span>` : ''}
-                ${r.businessLogicSignals.authFlows ? `<span class="comp-feature ts-xxs-m warn">Auth flows</span>` : ''}
-                ${r.businessLogicSignals.formHandling ? `<span class="comp-feature ts-xxs-m warn">Form handling</span>` : ''}
-                ${r.complexity.signals.length === 0 ? '<span class="ts-xxs-m" style="color:var(--text-tertiary)">None</span>' : ''}
-              </div>
-            </div>
-            <div style="margin-top:var(--space-12);padding-top:var(--space-12);border-top:1px solid var(--border-default)">
-              <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Suggested Actions:</div>
-              <ul style="margin:0;padding-left:var(--space-16);color:var(--text-primary)" class="ts-xs-r">
-                ${r.suggestedRefactor.suggestedActions.map(a => `<li>${esc(a)}</li>`).join('')}
-              </ul>
-            </div>
-          </div>
-          <div class="comp-score">${renderRing(r.complexity.score, 48)}</div>
-        </div>`;
-      }).join('') || '<div class="empty-state ts-d-r">No files match.</div>'}</div>`;
-  }
-
-  // Import Boundary / Purity Analysis Section
-  let purityHtml = '';
-  if (hasImportBoundary) {
-    let purityReports = Object.values(report.importBoundary);
-    
-    // Filter by purity status
-    if (refactorRadarRiskFilter === 'pure') {
-      purityReports = purityReports.filter(r => r.purity === 'pure');
-    } else if (refactorRadarRiskFilter === 'impure') {
-      purityReports = purityReports.filter(r => r.purity === 'impure');
-    } else if (refactorRadarRiskFilter === 'server-coupled') {
-      purityReports = purityReports.filter(r => r.reasons.some(reason => reason.type === 'server-api'));
-    }
-    
-    // Filter by search
-    if (refactorRadarSearchQuery) {
-      const q = refactorRadarSearchQuery.toLowerCase();
-      purityReports = purityReports.filter(r => r.path.toLowerCase().includes(q));
-    }
-
-    const pureCount = purityReports.filter(r => r.purity === 'pure').length;
-    const impureCount = purityReports.filter(r => r.purity === 'impure').length;
-    const serverCoupledCount = purityReports.filter(r => r.reasons.some(reason => reason.type === 'server-api')).length;
-    const totalPurity = purityReports.length;
-    const purityPercent = totalPurity > 0 ? Math.round((pureCount / totalPurity) * 100) : 100;
-
-    purityHtml = `<div>
-      <h3 class="ts-l-m" style="margin-bottom:var(--space-16)">UI Purity Analysis</h3>
-      <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(purityPercent, 160)}</div>
-      <div class="hero-stats">
-        <div class="stat clickable ${refactorRadarRiskFilter==='pure'?'active':''}" onclick="setRefactorRadarFilter('pure')"><div class="stat-value" style="color:var(--color-success)">${pureCount}</div><div class="stat-label ts-xxs-m">Pure</div></div>
-        <div class="stat clickable ${refactorRadarRiskFilter==='impure'?'active':''}" onclick="setRefactorRadarFilter('impure')"><div class="stat-value" style="color:var(--color-danger)">${impureCount}</div><div class="stat-label ts-xxs-m">Impure</div></div>
-        <div class="stat clickable ${refactorRadarRiskFilter==='server-coupled'?'active':''}" onclick="setRefactorRadarFilter('server-coupled')"><div class="stat-value" style="color:var(--color-warning)">${serverCoupledCount}</div><div class="stat-label ts-xxs-m">Server-coupled</div></div>
-        <div class="stat"><div class="stat-value">${totalPurity}</div><div class="stat-label ts-xxs-m">UI files</div></div>
-      </div></div>
-      <div class="toolbar">
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='all'?'active':''}" onclick="setRefactorRadarFilter('all')">All (${totalPurity})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='pure'?'active':''}" onclick="setRefactorRadarFilter('pure')">Pure (${pureCount})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='impure'?'active':''}" onclick="setRefactorRadarFilter('impure')">Impure (${impureCount})</button>
-        <button class="api-loc-btn ts-xs-m ${refactorRadarRiskFilter==='server-coupled'?'active':''}" onclick="setRefactorRadarFilter('server-coupled')">Server-coupled (${serverCoupledCount})</button>
-        <input class="search-input ts-xs-r" type="text" placeholder="Search file path..." value="${refactorRadarSearchQuery}" oninput="onRefactorRadarSearch(this.value)" />
-      </div>
-      <div>${purityReports.map(r => {
-        const purityBadge = r.purity === 'pure' ? '<span class="mig-section-badge simple ts-xxs-m">Pure</span>' : '<span class="mig-section-badge complex ts-xxs-m">Impure</span>';
-        const reasonsHtml = r.reasons.length > 0 ? `<div style="margin-top:var(--space-8)">
-          <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Import Violations:</div>
-          <ul style="margin:0;padding-left:var(--space-16);color:var(--text-primary)" class="ts-xs-r">
-            ${r.reasons.map(reason => `<li>${esc(reason.message)}${reason.line ? ` (line ${reason.line})` : ''}${reason.resolvedPath ? ` → ${esc(reason.resolvedPath)}` : ''}</li>`).join('')}
-          </ul>
-        </div>` : '';
-        return `<div class="comp-card">
-          <div>
-            <div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap;margin-bottom:var(--space-8)">
-              <span class="ts-d-m" style="font-weight:var(--font-weight-semibold)">${esc(r.path)}</span>
-              ${purityBadge}
-              <span class="ts-xxs-m" style="color:var(--text-secondary)">Purity score: ${r.score}/100</span>
-            </div>
-            ${reasonsHtml}
-          </div>
-          <div class="comp-score">${renderRing(100 - r.score, 48)}</div>
-        </div>`;
-      }).join('') || '<div class="empty-state ts-d-r">No files match.</div>'}</div>`;
-  }
-
-  return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Refactor Radar</h2>
-    <p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Business logic analysis and import boundary purity checking for refactoring.</p>
-    ${businessLogicHtml}
-    ${purityHtml}`;
-}
-
-function setRefactorRadarFilter(level) { refactorRadarRiskFilter = refactorRadarRiskFilter === level ? 'all' : level; render(); }
-function onRefactorRadarSearch(v) { refactorRadarSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
-
-function showMigrationModal(componentSource) {
-  openMigrationModal = componentSource;
-  render();
-  document.body.style.overflow = 'hidden';
-}
-
-function closeMigrationModal() {
-  openMigrationModal = null;
-  render();
-  document.body.style.overflow = '';
-}
-
-function renderMigrationModal() {
-  if (!openMigrationModal) return '';
-  
-  const migComp = report.migration?.components?.find(c => c.source === openMigrationModal);
-  if (!migComp) return '';
-
-  // Get business logic reports for affected files
-  const fileAnalyses = migComp.files.map(f => ({
-    file: f,
-    businessLogic: report.businessLogic?.[f.path] || null,
-    violations: report.files.find(fr => fr.path === f.path)?.violations || {}
-  }));
-
-  const riskColor = migComp.complexity === 'simple' ? 'var(--color-success)' : migComp.complexity === 'moderate' ? 'var(--color-warning)' : 'var(--color-danger)';
-  const complexityLabel = migComp.complexity === 'simple' ? '✅ Simple' : migComp.complexity === 'moderate' ? '⚠️ Moderate' : '🔴 Complex';
-
-  return `<div id="migration-modal-overlay" class="migration-modal-overlay" onclick="closeMigrationModal()">
-    <div class="migration-modal-content" onclick="event.stopPropagation()">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-20)">
-        <div>
-          <h2 class="ts-xl-sb">${esc(migComp.source)} → ${esc(migComp.target)}</h2>
-          <div style="display:flex;align-items:center;gap:var(--space-8);margin-top:var(--space-8)">
-            <span class="mig-section-badge ${migComp.complexity} ts-xs-m">${complexityLabel}</span>
-            ${migComp.effort ? `<span class="ts-xs-r" style="color:var(--text-secondary)">⏱ ${esc(migComp.effort)}</span>` : ''}
-          </div>
-        </div>
-        <button class="detail-close ts-xs-m" onclick="closeMigrationModal()">✕</button>
-      </div>
-      
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-16);margin-bottom:var(--space-20)">
-        <div class="stat">
-          <div class="stat-value">${migComp.totalUsages}</div>
-          <div class="stat-label ts-xxs-m">Total usages</div>
-        </div>
-        <div class="stat">
-          <div class="stat-value">${migComp.filesAffected}</div>
-          <div class="stat-label ts-xxs-m">Files affected</div>
-        </div>
-      </div>
-
-      ${migComp.guidelines ? `<div class="mig-guidelines" style="margin-bottom:var(--space-16)">
-        <div class="mig-guidelines-title ts-xxs-m">📋 Migration Guidelines</div>
-        <div class="mig-guidelines-content ts-xs-r">${esc(migComp.guidelines)}</div>
-      </div>` : ''}
-
-      ${migComp.propMapping ? `<div class="mig-props" style="margin-bottom:var(--space-16)">
-        <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">🔀 Prop Mapping</div>
-        <div class="ts-xs-r" style="font-family:var(--font-family-mono)">${esc(migComp.propMapping)}</div>
-      </div>` : ''}
-
-      <div style="margin-top:var(--space-24);border-top:2px solid var(--border-default);padding-top:var(--space-20)">
-        <h3 class="ts-l-m" style="margin-bottom:var(--space-16)">Business Logic Analysis</h3>
-        <div style="max-height:400px;overflow-y:auto">
-          ${fileAnalyses.map(fa => {
-            if (!fa.businessLogic) return `<div class="mig-file-item" style="padding:var(--space-12);border:1px solid var(--border-default);border-radius:var(--radius-8);margin-bottom:var(--space-8)">
-              <div class="ts-xs-m" style="font-family:var(--font-family-mono);margin-bottom:var(--space-4)">${esc(fa.file.path)}</div>
-              <div class="ts-xxs-r" style="color:var(--text-tertiary)">No business logic analysis available</div>
-            </div>`;
-            
-            const bl = fa.businessLogic;
-            const riskColor = bl.complexity.riskLevel === 'safe' ? 'var(--color-success)' : bl.complexity.riskLevel === 'careful' ? 'var(--color-warning)' : 'var(--color-danger)';
-            return `<div class="mig-file-item" style="padding:var(--space-16);border:1px solid var(--border-default);border-radius:var(--radius-8);margin-bottom:var(--space-12)">
-              <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:var(--space-12)">
-                <div class="ts-xs-m" style="font-family:var(--font-family-mono)">${esc(fa.file.path)}</div>
-                <span class="mig-section-badge ${bl.complexity.riskLevel} ts-xxs-m">${bl.complexity.riskLevel === 'safe' ? 'Safe' : bl.complexity.riskLevel === 'careful' ? 'Careful' : 'Page-level'}</span>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-12);margin-bottom:var(--space-12)">
-                <div>
-                  <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Native HTML:</div>
-                  <div style="display:flex;gap:var(--space-4);flex-wrap:wrap">
-                    ${bl.nativeHtmlElements.total > 0 ? Object.entries(bl.nativeHtmlElements).filter(([k,v]) => k !== 'total' && v > 0).map(([k,v]) => `<span class="ts-xxs-r" style="background:var(--bg-base-secondary);padding:var(--space-2) var(--space-6);border-radius:var(--radius-4)">&lt;${k}&gt;: ${v}</span>`).join('') : '<span class="ts-xxs-r" style="color:var(--text-tertiary)">None</span>'}
-                  </div>
-                </div>
-                <div>
-                  <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Signals:</div>
-                  <div style="display:flex;gap:var(--space-4);flex-wrap:wrap">
-                    ${bl.businessLogicSignals.apiCalls > 0 ? `<span class="ts-xxs-r" style="background:var(--bg-base-secondary);padding:var(--space-2) var(--space-6);border-radius:var(--radius-4)">${bl.businessLogicSignals.apiCalls} API</span>` : ''}
-                    ${bl.businessLogicSignals.useStateCount > 0 ? `<span class="ts-xxs-r" style="background:var(--bg-base-secondary);padding:var(--space-2) var(--space-6);border-radius:var(--radius-4)">${bl.businessLogicSignals.useStateCount} useState</span>` : ''}
-                    ${bl.businessLogicSignals.useEffectCount > 0 ? `<span class="ts-xxs-r" style="background:var(--bg-base-secondary);padding:var(--space-2) var(--space-6);border-radius:var(--radius-4)">${bl.businessLogicSignals.useEffectCount} useEffect</span>` : ''}
-                    ${bl.complexity.signals.length === 0 ? '<span class="ts-xxs-r" style="color:var(--text-tertiary)">None</span>' : ''}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4)">Suggested Actions:</div>
-                <ul style="margin:0;padding-left:var(--space-16);color:var(--text-primary)" class="ts-xxs-r">
-                  ${bl.suggestedRefactor.suggestedActions.slice(0, 3).map(a => `<li>${esc(a)}</li>`).join('')}
-                </ul>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-function updateMigrationModal() {
-  const modal = document.getElementById('migration-modal-overlay');
-  if (modal) {
-    modal.scrollTop = 0;
-  }
-}
-
-// ESC key handler
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && openMigrationModal) {
-    closeMigrationModal();
-  }
-});
 
 loadReport();
 </script>
