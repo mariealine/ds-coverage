@@ -400,7 +400,7 @@ function getFilteredFiles() {
 function renderHeader() {
   const s = report.summary;
   const tabs = [{ id: 'metrics', label: 'Metrics — App' }];
-  if (CFG.componentAnalysisEnabled) tabs.push({ id: 'tokens', label: 'Metrics — Design System' }, { id: 'api', label: 'Components — API Redesign' });
+  if (CFG.componentAnalysisEnabled) tabs.push({ id: 'tokens', label: 'Metrics — Design System' });
   if (CFG.migrationEnabled) tabs.push({ id: 'migration', label: 'Migration Plan' });
   if (CFG.roadmapEnabled) tabs.push({ id: 'roadmap', label: 'Refactoring Roadmap' });
   if (CFG.businessLogicAnalysisEnabled || CFG.purityEnabled) tabs.push({ id: 'refactor-radar', label: 'Refactor Radar' });
@@ -698,7 +698,6 @@ function render() {
   html += `<div class="tab-content ${activeTab==='metrics'?'active':''}">${renderMetrics()}</div>`;
   if (CFG.componentAnalysisEnabled) {
     html += `<div class="tab-content ${activeTab==='tokens'?'active':''}">${renderTokens()}</div>`;
-    html += `<div class="tab-content ${activeTab==='api'?'active':''}">${renderApiRework()}</div>`;
   }
   if (CFG.migrationEnabled) html += `<div class="tab-content ${activeTab==='migration'?'active':''}">${renderMigration()}</div>`;
   if (CFG.roadmapEnabled) html += `<div class="tab-content ${activeTab==='roadmap'?'active':''}">${renderRoadmap()}</div>`;
