@@ -73,7 +73,7 @@ The `init` wizard asks about your stack (CSS methodology, framework, component a
 - `design-system-refactor-radar.config.mjs` — your config file with patterns matching your stack (or .js / .cjs depending on setup)
 - `.cursor/rules/design-system-compliance.mdc` — AI compliance rule
 - `.cursor/rules/ui-component-creation.mdc` — AI component creation rule
-- `.cursor/skills/design-system-compliance/SKILL.md` — AI skill file
+- `.cursor/skills/design-system-compliance/SKILL.md` — **AI skill: read and edit this file** to adapt the protocol to your project and get full value from the tool (see [AI guidelines](#ai-guidelines))
 
 ## Works with any stack
 
@@ -210,19 +210,29 @@ See `design-system-refactor-radar.config.example.js` for a full annotated exampl
 
 ## AI guidelines
 
-The `init` command generates Cursor rules that stay in sync with your scanner config. This means your AI assistant enforces the **same rules** the scanner detects.
+The `init` command generates Cursor rules that stay in sync with your scanner config. Your AI assistant uses these to enforce the **same rules** the scanner detects.
+
+### Read and customize the skill (SKILL.md) — get 100% out of the tool
+
+**The design-system-compliance skill (`SKILL.md`) is the main file your AI assistant loads when building or editing UI.** To get full value from Design System Refactor Radar:
+
+1. **Read it** right after running `init` — it summarizes the protocol (tokens, component hierarchy, Boy Scout Rule, flagging).
+2. **Edit it** to match *your* project: your token names, your component directory paths, your conventions. The generated content is a starting point; your team’s decisions belong in this file.
+3. **Keep it in sync** with how you work. When your design system evolves, update the skill so the AI keeps giving aligned suggestions.
+
+If you skip this step, the AI still has the long-form rules (`.mdc`), but the skill is the concise, project-specific checklist it uses most. **Customizing `SKILL.md` is how you make the tool fully yours.**
 
 Generated files:
 
 | File | Purpose |
 |---|---|
+| `.cursor/skills/design-system-compliance/SKILL.md` | **Read and customize.** Main skill the AI uses for UI work. Adapt tokens, paths, and conventions here for full benefit. |
 | `.cursor/rules/design-system-compliance.mdc` | Full compliance protocol — violation checklist, decision hierarchy, Boy Scout Rule, flagging conventions |
 | `.cursor/rules/ui-component-creation.mdc` | Component creation standards — architecture, prop naming, accessibility checklist |
-| `.cursor/skills/design-system-compliance/SKILL.md` | Quick reference skill for the AI assistant |
 
-Also supports Claude (`.claude/skills/`) and generic agents (`.agents/skills/`).
+Also generated for Claude (`.claude/skills/`) and generic agents (`.agents/skills/`). Same idea: **open the skill, read it, then edit it** for your project.
 
-After changing your config, re-run `npx design-system-refactor-radar init --force` to regenerate the rules.
+After changing your *config*, re-run `npx design-system-refactor-radar init --force` to regenerate the rules. If you’ve customized `SKILL.md` by hand, back up your edits before using `--force`, or merge them back after regenerating.
 
 ## Flagging conventions
 
