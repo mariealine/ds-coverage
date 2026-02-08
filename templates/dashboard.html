@@ -88,6 +88,13 @@
     .stat { padding: var(--space-16); border-radius: var(--radius-8); background: var(--bg-base-primary-hover); }
     .stat-value { font-size: 28px; font-weight: var(--font-weight-bold); letter-spacing: -0.02em; }
     .stat-label { color: var(--text-secondary); margin-top: var(--space-2); }
+    .stat-hint { font-size: 10px; color: var(--text-tertiary); margin-top: var(--space-2); line-height: 1.3; max-width: 120px; }
+
+    /* Metrics — App: Component section (filtering) */
+    .metrics-component-section { margin-top: var(--space-32); padding-top: var(--space-24); border-top: 1px solid var(--border-default); }
+    .section-title { color: var(--text-main); margin-bottom: var(--space-8); }
+    .section-subtitle { color: var(--text-secondary); margin-top: var(--space-24); margin-bottom: var(--space-12); }
+    .section-subtitle:first-of-type { margin-top: 0; }
 
     /* Category cards */
     .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-16); margin-bottom: var(--space-24); }
@@ -125,6 +132,7 @@
     .file-table td { padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--border-default); vertical-align: top; }
     .file-table tr:last-child td { border-bottom: none; }
     .file-table tr:hover td { background: var(--bg-base-primary-hover); }
+    .file-table tr.list-card-selected td { background: oklch(0.97 0.01 264); }
     .file-path { font-family: var(--font-family-mono); color: var(--color-accent); word-break: break-all; }
     .file-path:hover { text-decoration: underline; cursor: pointer; }
     .badge { display: inline-block; padding: var(--space-2) var(--space-6); border-radius: var(--radius-4); min-width: 24px; text-align: center; }
@@ -155,7 +163,13 @@
     .tab-content.active { display: block; }
 
     /* Roadmap */
-    .phase-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-16); }
+    .phase-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-16); cursor: pointer; transition: border-color 0.15s; }
+    .phase-card:hover { border-color: var(--border-hover); }
+    .phase-card.list-card-selected { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .phase-card-body { display: none; margin-top: var(--space-12); padding-top: var(--space-12); border-top: 1px solid var(--border-default); }
+    .phase-card-body.open { display: block; }
+    .phase-chevron { color: var(--text-tertiary); margin-right: var(--space-8); transition: transform 0.2s; }
+    .phase-chevron.open { transform: rotate(90deg); }
     .phase-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-16); margin-bottom: var(--space-12); }
     .phase-title { display: flex; align-items: center; gap: var(--space-8); }
     .phase-number { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--color-accent); color: var(--text-complementary); flex-shrink: 0; }
@@ -185,6 +199,11 @@
     .token-table td { padding: var(--space-8) var(--space-16); border-bottom: 1px solid var(--border-default); vertical-align: middle; }
     .token-table tr:last-child td { border-bottom: none; }
     .token-table tr:hover td { background: var(--bg-base-primary-hover); }
+    .token-table tr.list-card-clickable { cursor: pointer; }
+    .token-table tr.list-card-selected td { background: oklch(0.97 0.01 264); }
+    .token-table .list-card-detail-row td { padding: var(--space-12) var(--space-16); background: var(--bg-base-primary-hover); border-bottom: 1px solid var(--border-default); vertical-align: top; }
+    .list-card-accordion-chevron { color: var(--text-tertiary); margin-right: var(--space-4); transition: transform 0.2s; }
+    .list-card-accordion-chevron.open { transform: rotate(90deg); }
     .token-score-bar { display: flex; align-items: center; gap: var(--space-8); min-width: 140px; }
     .token-bar-track { flex: 1; height: var(--space-6); border-radius: var(--space-4); background: var(--bg-base-secondary); overflow: hidden; }
     .token-bar-fill { height: 100%; border-radius: var(--space-4); transition: width 0.3s; }
@@ -203,6 +222,8 @@
     .api-loc-btn.active { background: var(--color-accent); color: var(--text-complementary); border-color: var(--color-accent); }
     .comp-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); padding: var(--space-16); margin-bottom: var(--space-8); display: grid; grid-template-columns: 1fr auto; gap: var(--space-16); align-items: start; }
     .comp-card:hover { border-color: var(--border-hover); }
+    .comp-card.list-card-selected { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .comp-card-detail { margin-top: var(--space-12); padding-top: var(--space-12); border-top: 1px solid var(--border-default); }
     .comp-features { display: flex; gap: var(--space-6); flex-wrap: wrap; margin-top: var(--space-8); }
     .comp-feature { padding: var(--space-2) var(--space-8); border-radius: var(--radius-4); display: inline-flex; align-items: center; gap: var(--space-4); }
     .comp-feature.yes { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
@@ -227,8 +248,14 @@
     .mig-section-badge.simple { background: oklch(0.982 0.018 155.826); color: oklch(0.527 0.154 150.069); }
     .mig-section-badge.moderate { background: oklch(0.982 0.022 70.08); color: oklch(0.393 0.095 70.08); }
     .mig-section-badge.complex { background: oklch(0.971 0.013 17.38); color: oklch(0.505 0.213 27.518); }
-    .mig-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-12); transition: border-color 0.15s; }
+    .mig-card { background: var(--bg-base-primary); border: 1px solid var(--border-default); border-radius: var(--radius-12); padding: var(--space-24); margin-bottom: var(--space-12); transition: border-color 0.15s; cursor: pointer; }
     .mig-card:hover { border-color: var(--border-hover); }
+    .mig-card.list-card-selected { border-color: var(--color-accent); box-shadow: 0 0 0 1px var(--color-accent); }
+    .mig-card-header { cursor: pointer; }
+    .mig-card-body { display: none; }
+    .mig-card-body.open { display: block; }
+    .mig-card-chevron { color: var(--text-tertiary); margin-right: var(--space-8); transition: transform 0.2s; }
+    .mig-card-chevron.open { transform: rotate(90deg); }
     .mig-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-16); margin-bottom: var(--space-12); }
     .mig-swap { display: flex; align-items: center; gap: var(--space-8); }
     .mig-comp-name { font-weight: var(--font-weight-semibold); padding: var(--space-4) var(--space-12); border-radius: var(--radius-6); font-family: var(--font-family-mono); }
@@ -308,6 +335,9 @@ let migComplexityFilter = 'all';
 let migSearchQuery = '';
 let migShowFilter = 'toMigrate'; // 'toMigrate' | 'migrated' | 'all'
 const openMigFiles = new Set();
+const openTokenDetails = new Set();
+const openMigDetails = new Set();
+const openPhaseCards = new Set();
 
 async function loadReport() {
   if (window.__DS_REPORT__) { report = window.__DS_REPORT__; render(); return; }
@@ -375,13 +405,17 @@ function renderMetrics() {
   <div class="hero"><div style="display:flex;align-items:center;justify-content:center;">${renderRing(s.coveragePercent, 160)}</div>
   <div class="hero-stats">
     <div class="stat"><div class="stat-value">${s.totalFilesScanned}</div><div class="stat-label ts-xxs-m">Files scanned</div></div>
-    <div class="stat"><div class="stat-value" style="color:var(--color-success)">${s.totalFilesScanned - s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">Compliant</div></div>
-    <div class="stat"><div class="stat-value" style="color:var(--color-danger)">${s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">With debt</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--color-success)">${s.totalFilesScanned - s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">Compliant</div><div class="stat-hint ts-xxs-r">Files with no design system violations</div></div>
+    <div class="stat"><div class="stat-value" style="color:var(--color-danger)">${s.totalFilesWithViolations}</div><div class="stat-label ts-xxs-m">With debt</div><div class="stat-hint ts-xxs-r">Files with at least one violation to fix</div></div>
     <div class="stat"><div class="stat-value">${s.totalViolations}</div><div class="stat-label ts-xxs-m">Total violations</div></div>
   </div></div>
+  <section class="metrics-component-section">
+  <h3 class="section-title ts-l-m">Component</h3>
+  <p class="section-subtitle ts-d-r">Filter by tokens</p>
   <div class="categories">${CAT_KEYS.map(k => { const cat = s.categories[k]; if (!cat) return ''; const m = CATS[k]; const w = (cat.totalViolations / maxV * 100).toFixed(1);
     return `<div class="cat-card ${activeCategory === k ? 'active' : ''}" onclick="toggleCategory('${k}')"><div class="cat-header"><span class="cat-name ts-xxs-m">${m.label}</span><span class="cat-icon">${m.icon}</span></div><div class="cat-count">${cat.totalViolations}</div><div class="cat-files ts-xxs-r">${cat.totalFiles} files</div><div class="cat-bar"><div class="cat-bar-fill" style="width:${w}%;background:${m.color}"></div></div></div>`;
   }).join('')}</div>
+  <p class="section-subtitle ts-d-r">Filter by migration step</p>
   <div class="flags">
     <div class="flag-card"><span class="flag-badge simple ts-xxs-m">@ds-migrate: simple</span><span class="flag-count">${s.flags.migrateSimple}</span></div>
     <div class="flag-card"><span class="flag-badge complex ts-xxs-m">@ds-migrate: complex</span><span class="flag-count">${s.flags.migrateComplex}</span></div>
@@ -390,8 +424,9 @@ function renderMetrics() {
   <div class="toolbar"><input class="search-input ts-xs-r" type="text" placeholder="Filter by file path..." value="${searchQuery}" oninput="onSearch(this.value)" />
   <select class="sort-select ts-xs-r" onchange="onSort(this.value)"><option value="totalViolations-desc" ${sortField==='totalViolations'&&sortDir==='desc'?'selected':''}>Most violations</option><option value="totalViolations-asc" ${sortField==='totalViolations'&&sortDir==='asc'?'selected':''}>Least violations</option><option value="path-asc" ${sortField==='path'&&sortDir==='asc'?'selected':''}>Name A-Z</option>${CAT_KEYS.map(k=>`<option value="${k}-desc">${CATS[k].label} ↓</option>`).join('')}</select></div>
   <div class="file-table-container"><table class="file-table"><thead><tr><th class="ts-xxs-m" style="width:45%">File</th><th class="ts-xxs-m">Total</th>${CAT_KEYS.map(k=>`<th class="ts-xxs-m">${CATS[k].label.slice(0,6)}</th>`).join('')}<th class="ts-xxs-m">Flags</th></tr></thead><tbody>
-  ${pageFiles.length === 0 ? `<tr><td colspan="${CAT_KEYS.length + 3}" class="empty-state ts-d-r">No files match.</td></tr>` : pageFiles.map(f => `<tr onclick="showDetail('${f.path.replace(/'/g,"\\'")}')" style="cursor:pointer"><td><span class="file-path ts-xxs-r">${f.path}</span></td><td><strong class="ts-xs-m">${f.totalViolations}</strong></td>${CAT_KEYS.map(k=>`<td>${renderBadge(f.violations[k]?.length||0,k)}</td>`).join('')}<td>${f.totalFlags > 0 ? `<span class="badge ts-xxs-m" style="background:oklch(0.982 0.022 70.08);color:oklch(0.393 0.095 70.08)">${f.totalFlags}</span>` : renderBadge(0,'')}</td></tr>`).join('')}
+  ${pageFiles.length === 0 ? `<tr><td colspan="${CAT_KEYS.length + 3}" class="empty-state ts-d-r">No files match.</td></tr>` : pageFiles.map(f => { const selected = detailFile === f.path; return `<tr class="${selected ? 'list-card-selected' : ''}" onclick="toggleFileDetail('${f.path.replace(/'/g,"\\'")}')" style="cursor:pointer"><td><span class="file-path ts-xxs-r">${f.path}</span></td><td><strong class="ts-xs-m">${f.totalViolations}</strong></td>${CAT_KEYS.map(k=>`<td>${renderBadge(f.violations[k]?.length||0,k)}</td>`).join('')}<td>${f.totalFlags > 0 ? `<span class="badge ts-xxs-m" style="background:oklch(0.982 0.022 70.08);color:oklch(0.393 0.095 70.08)">${f.totalFlags}</span>` : renderBadge(0,'')}</td></tr>`; }).join('')}
   </tbody></table>${totalPages > 1 ? `<div class="pagination"><span class="ts-xxs-r">Showing ${currentPage*PAGE_SIZE+1}–${Math.min((currentPage+1)*PAGE_SIZE,files.length)} of ${files.length}</span><div style="display:flex;gap:var(--space-8)"><button class="ts-xxs-m" onclick="goPage(${currentPage-1})" ${currentPage===0?'disabled':''}>← Previous</button><button class="ts-xxs-m" onclick="goPage(${currentPage+1})" ${currentPage>=totalPages-1?'disabled':''}>Next →</button></div></div>` : ''}</div>
+  </section>
   <div id="detail-panel" class="detail-panel"></div>`;
 }
 
@@ -420,8 +455,8 @@ function renderTokens() {
     <input class="search-input ts-xs-r" type="text" placeholder="Search component..." value="${tokenSearchQuery}" oninput="onTokenSearch(this.value)" />
   </div>
   <table class="token-table"><thead><tr><th class="ts-xxs-m" style="width:60px">Loc</th><th class="ts-xxs-m" style="cursor:pointer" onclick="onTokenSort('name')">Component${sortI('name')}</th><th class="ts-xxs-m" style="min-width:160px;cursor:pointer" onclick="onTokenSort('score')">Token Score${sortI('score')}</th><th class="ts-xxs-m" style="text-align:center;cursor:pointer" onclick="onTokenSort('violations')">Total${sortI('violations')}</th>${CAT_KEYS.map(k=>`<th class="ts-xxs-m" style="text-align:center;cursor:pointer" onclick="onTokenSort('${k}')">${CATS[k].label.slice(0,6)}${sortI(k)}</th>`).join('')}</tr></thead><tbody>
-  ${components.map(c => { const tc = c.tokenCoverage; const color = getCoverageColor(tc.score); const sr = Math.round(tc.score);
-    return `<tr><td><span class="loc-badge ${c.location} ts-xxs-m">${c.location}/</span></td><td><div class="ts-xs-m" style="font-weight:var(--font-weight-semibold)">${c.name}</div><div class="ts-xxs-r" style="color:var(--text-tertiary);font-family:var(--font-family-mono)">${c.path}</div></td><td><div class="token-score-bar"><div class="token-bar-track"><div class="token-bar-fill" style="width:${sr}%;background:${color}"></div></div><span class="token-score-pct ts-xs-m" style="color:${color}">${sr}%</span></div></td><td style="text-align:center">${tc.totalViolations > 0 ? `<strong class="ts-xs-m">${tc.totalViolations}</strong>` : '<span style="color:var(--color-success)" class="ts-xs-m">✓</span>'}</td>${CAT_KEYS.map(k=>`<td style="text-align:center">${renderBadge(tc.violations[k]||0,k)}</td>`).join('')}</tr>`; }).join('') || `<tr><td colspan="${CAT_KEYS.length+4}" class="empty-state ts-d-r">No components match.</td></tr>`}
+  ${components.map(c => { const tc = c.tokenCoverage; const color = getCoverageColor(tc.score); const sr = Math.round(tc.score); const tokenOpen = openTokenDetails.has(c.path); const violBreakdown = CAT_KEYS.filter(k => (tc.violations[k]||0) > 0).map(k => `${CATS[k].label}: ${tc.violations[k]}`).join(' · ') || 'No violations';
+    return `<tr class="list-card-clickable ${tokenOpen ? 'list-card-selected' : ''}" onclick="toggleTokenDetail('${c.path.replace(/'/g,"\\'")}')"><td><span class="loc-badge ${c.location} ts-xxs-m">${c.location}/</span></td><td><span class="list-card-accordion-chevron ${tokenOpen ? 'open' : ''}">▸</span><div class="ts-xs-m" style="font-weight:var(--font-weight-semibold);display:inline">${c.name}</div><div class="ts-xxs-r" style="color:var(--text-tertiary);font-family:var(--font-family-mono)">${c.path}</div></td><td><div class="token-score-bar"><div class="token-bar-track"><div class="token-bar-fill" style="width:${sr}%;background:${color}"></div></div><span class="token-score-pct ts-xs-m" style="color:${color}">${sr}%</span></div></td><td style="text-align:center">${tc.totalViolations > 0 ? `<strong class="ts-xs-m">${tc.totalViolations}</strong>` : '<span style="color:var(--color-success)" class="ts-xs-m">✓</span>'}</td>${CAT_KEYS.map(k=>`<td style="text-align:center">${renderBadge(tc.violations[k]||0,k)}</td>`).join('')}</tr>${tokenOpen ? `<tr class="list-card-detail-row"><td colspan="${CAT_KEYS.length+4}"><div class="ts-xxs-r" style="color:var(--text-secondary)">${violBreakdown}</div></td></tr>` : ''}`; }).join('') || `<tr><td colspan="${CAT_KEYS.length+4}" class="empty-state ts-d-r">No components match.</td></tr>`}
   </tbody></table>`;
 }
 
@@ -456,15 +491,16 @@ function renderApiRework() {
   <div>${components.map(comp => { const isOpen = openCompDetails.has(comp.path); const features = [{l:'CVA',ok:comp.usesCVA},{l:'Radix',ok:comp.usesRadix},{l:'className',ok:comp.hasClassName},{l:'asChild',ok:comp.hasAsChild},{l:'compoundVariants',ok:comp.usesCompoundVariants}];
     const propsHtml = comp.variantProps.length > 0 ? `<div style="margin-top:var(--space-6)"><span class="ts-xxs-m" style="color:var(--text-secondary)">Props:</span> ${comp.variantProps.map(p => { const ok = CFG.expectedProps.includes(p); const bad = CFG.forbiddenProps.includes(p); return `<span class="comp-feature ts-xxs-m ${bad?'warn':ok?'yes':'no'}">${p}</span>`; }).join('')}</div>` : '';
     const sizesHtml = comp.sizeValues.length > 0 ? `<div style="margin-top:var(--space-4)"><span class="ts-xxs-m" style="color:var(--text-secondary)">Sizes:</span> ${comp.sizeValues.map(v => `<span class="comp-feature ts-xxs-m ${CFG.expectedSizes.includes(v)?'yes':'warn'}">${v}</span>`).join('')}</div>` : '';
-    const issuesHtml = comp.issues.length > 0 ? `<div style="${isOpen?'':'display:none'};margin-top:var(--space-8)">${comp.issues.map(i => `<div class="comp-issue ts-xxs-r"><span class="comp-issue-icon ${i.severity}">${i.severity==='error'?'✕':'⚠'}</span><span>${esc(i.message)}</span></div>`).join('')}</div>` : '';
-    return `<div class="comp-card" style="cursor:pointer" onclick="toggleCompDetail('${comp.path.replace(/'/g,"\\'")}')"><div><div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap"><span class="ts-d-m" style="font-weight:var(--font-weight-semibold)">${comp.name}</span><span class="loc-badge ${comp.location} ts-xxs-m">${comp.location}/</span>${comp.issues.length>0?`<span class="ts-xxs-m" style="color:var(--text-secondary)">${comp.issues.filter(i=>i.severity==='error').length} errors, ${comp.issues.filter(i=>i.severity==='warning').length} warnings</span>`:'<span class="ts-xxs-m" style="color:var(--color-success)">✓ No issues</span>'}</div><div style="font-family:var(--font-family-mono);color:var(--text-secondary)" class="ts-xxs-r">${comp.path}</div><div class="comp-features">${features.map(f=>`<span class="comp-feature ts-xxs-m ${f.ok?'yes':'no'}">${f.ok?'✓':'✕'} ${f.l}</span>`).join('')}</div>${propsHtml}${sizesHtml}${issuesHtml}</div><div class="comp-score">${renderRing(comp.complianceScore, 48)}</div></div>`; }).join('') || '<div class="empty-state ts-d-r">No components match.</div>'}</div>`;
+    const issuesHtml = comp.issues.length > 0 ? `<div style="margin-top:var(--space-8)">${comp.issues.map(i => `<div class="comp-issue ts-xxs-r"><span class="comp-issue-icon ${i.severity}">${i.severity==='error'?'✕':'⚠'}</span><span>${esc(i.message)}</span></div>`).join('')}</div>` : '';
+    const detailBlock = (propsHtml || sizesHtml || issuesHtml) ? `<div class="comp-card-detail" style="${isOpen?'':'display:none'}">${propsHtml}${sizesHtml}${issuesHtml}</div>` : '';
+    return `<div class="comp-card ${isOpen ? 'list-card-selected' : ''}" style="cursor:pointer" onclick="toggleCompDetail('${comp.path.replace(/'/g,"\\'")}')"><div><div style="display:flex;align-items:center;gap:var(--space-8);flex-wrap:wrap"><span class="list-card-accordion-chevron ${isOpen ? 'open' : ''}" style="display:inline-block">▸</span><span class="ts-d-m" style="font-weight:var(--font-weight-semibold)">${comp.name}</span><span class="loc-badge ${comp.location} ts-xxs-m">${comp.location}/</span>${comp.issues.length>0?`<span class="ts-xxs-m" style="color:var(--text-secondary)">${comp.issues.filter(i=>i.severity==='error').length} errors, ${comp.issues.filter(i=>i.severity==='warning').length} warnings</span>`:'<span class="ts-xxs-m" style="color:var(--color-success)">✓ No issues</span>'}</div><div style="font-family:var(--font-family-mono);color:var(--text-secondary)" class="ts-xxs-r">${comp.path}</div><div class="comp-features">${features.map(f=>`<span class="comp-feature ts-xxs-m ${f.ok?'yes':'no'}">${f.ok?'✓':'✕'} ${f.l}</span>`).join('')}</div>${detailBlock}</div><div class="comp-score">${renderRing(comp.complianceScore, 48)}</div></div>`; }).join('') || '<div class="empty-state ts-d-r">No components match.</div>'}</div>`;
 }
 
 function renderRoadmap() {
   const r = report.roadmap;
   if (!r) return '<div class="empty-state ts-d-r">No roadmap data.</div>';
-  const phasesHtml = r.phases.map((p, i) => { const isOpen = openPhases.has(p.id);
-    return `<div class="phase-card"><div class="phase-header"><div class="phase-title"><span class="phase-number ts-xxs-m">${i+1}</span><span class="ts-l-m">${p.title}</span></div></div><div class="phase-desc ts-xs-r">${p.description}</div>${p.businessCase?`<div class="biz-case"><div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4);text-transform:uppercase;letter-spacing:0.05em">Why prioritize</div><div class="ts-xs-r" style="color:var(--text-primary)">${p.businessCase}</div></div>`:''}<div class="phase-stats"><div><span class="phase-stat-value ts-d-m">${p.filesCount}</span><span class="phase-stat-label ts-xxs-r"> files</span></div><div><span class="phase-stat-value ts-d-m">${p.violationsCount}</span><span class="phase-stat-label ts-xxs-r"> violations</span></div></div><div class="phase-files"><button class="phase-files-toggle ts-xs-m" onclick="togglePhaseFiles('${p.id}')">${isOpen?'▾ Hide files':'▸ Show files'} (${p.files.length})</button><div class="phase-file-list ${isOpen?'open':''}">${p.files.map(f=>`<div class="phase-file-item"><span class="phase-file-path ts-xxs-r">${f.path}</span><span class="phase-file-count ts-xxs-m">${f.count}</span></div>`).join('')}</div></div></div>`; }).join('');
+  const phasesHtml = r.phases.map((p, i) => { const filesOpen = openPhases.has(p.id); const cardOpen = openPhaseCards.has(p.id);
+    return `<div class="phase-card ${cardOpen ? 'list-card-selected' : ''}" onclick="togglePhaseCard('${p.id}')"><div class="phase-header"><span class="phase-chevron ${cardOpen ? 'open' : ''}">▸</span><div class="phase-title"><span class="phase-number ts-xxs-m">${i+1}</span><span class="ts-l-m">${p.title}</span></div></div><div class="phase-stats"><div><span class="phase-stat-value ts-d-m">${p.filesCount}</span><span class="phase-stat-label ts-xxs-r"> files</span></div><div><span class="phase-stat-value ts-d-m">${p.violationsCount}</span><span class="phase-stat-label ts-xxs-r"> violations</span></div></div><div class="phase-card-body ${cardOpen?'open':''}"><div class="phase-desc ts-xs-r">${p.description}</div>${p.businessCase?`<div class="biz-case"><div class="ts-xxs-m" style="color:var(--text-secondary);margin-bottom:var(--space-4);text-transform:uppercase;letter-spacing:0.05em">Why prioritize</div><div class="ts-xs-r" style="color:var(--text-primary)">${p.businessCase}</div></div>`:''}<div class="phase-files"><button class="phase-files-toggle ts-xs-m" onclick="event.stopPropagation();togglePhaseFiles('${p.id}')">${filesOpen?'▾ Hide files':'▸ Show files'} (${p.files.length})</button><div class="phase-file-list ${filesOpen?'open':''}">${p.files.map(f=>`<div class="phase-file-item"><span class="phase-file-path ts-xxs-r">${f.path}</span><span class="phase-file-count ts-xxs-m">${f.count}</span></div>`).join('')}</div></div></div></div>`; }).join('');
   const topDirs = r.directories.slice(0, 15);
   const dirHtml = topDirs.map(d => `<div class="dir-card"><div class="ts-xxs-m" style="font-family:var(--font-family-mono);margin-bottom:var(--space-8);word-break:break-all">${d.path}/</div><div class="dir-bar"><div class="dir-bar-fill" style="width:${d.coveragePercent}%;background:${getCoverageColor(d.coveragePercent)}"></div></div><div class="dir-stats ts-xxs-r"><span>${d.coveragePercent}% compliant</span><span>${d.filesWithViolations}/${d.totalFiles} with debt</span><span>${d.totalViolations} violations</span></div></div>`).join('');
   return `<h2 class="ts-xl-sb" style="margin-bottom:var(--space-8)">Refactoring Roadmap</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-24)">Migration phases ordered by impact. Each includes a business case and affected files.</p>${phasesHtml}<h2 class="ts-xl-sb" style="margin-top:var(--space-32);margin-bottom:var(--space-8)">Coverage by Directory</h2><p class="ts-d-r" style="color:var(--text-secondary);margin-bottom:var(--space-16)">Directories sorted by most violations.</p><div class="dir-grid">${dirHtml}</div>`;
@@ -625,8 +661,11 @@ function renderMigCard(c) {
 
   const migratedBadge = c.migrated ? '<span class="mig-section-badge simple ts-xxs-m" style="background:var(--color-success);color:var(--text-complementary)">✓ Migrated</span>' : '';
   const cardStyle = c.migrated ? 'opacity:0.85;border-color:var(--color-success);' : '';
-  return `<div class="mig-card" style="${cardStyle}">
+  const migOpen = openMigDetails.has(c.source);
+  const bodyContent = guidelinesHtml || propsHtml || breakingHtml || filesHtml ? `${guidelinesHtml}${propsHtml}${breakingHtml}${filesHtml}` : '';
+  return `<div class="mig-card ${migOpen ? 'list-card-selected' : ''}" style="${cardStyle}" onclick="toggleMigDetail('${c.source.replace(/'/g,"\\'")}')">
     <div class="mig-card-header">
+      <span class="mig-card-chevron ${migOpen ? 'open' : ''}">▸</span>
       <div class="mig-swap">
         <span class="mig-comp-name source ts-xs-m">${esc(c.source)}</span>
         <span class="mig-arrow">→</span>
@@ -643,7 +682,7 @@ function renderMigCard(c) {
       <div class="mig-meta-item ts-xxs-r"><span class="mig-meta-value">${c.filesAffected}</span> files</div>
       <div class="mig-meta-item ts-xxs-r" style="font-family:var(--font-family-mono)">→ ${esc(c.targetImportPath)}</div>
     </div>
-    ${guidelinesHtml}${propsHtml}${breakingHtml}${filesHtml}
+    ${bodyContent ? `<div class="mig-card-body ${migOpen ? 'open' : ''}">${bodyContent}</div>` : ''}
   </div>`;
 }
 
@@ -677,8 +716,13 @@ function setMigFilter(level) { migComplexityFilter = migComplexityFilter === lev
 function setMigShowFilter(view) { migShowFilter = view; render(); }
 function onMigSearch(v) { migSearchQuery = v; render(); const i = document.querySelector('.tab-content.active .search-input'); if (i) { i.focus(); i.selectionStart = i.selectionEnd = v.length; } }
 function toggleMigFiles(src) { if (openMigFiles.has(src)) openMigFiles.delete(src); else openMigFiles.add(src); render(); }
+function toggleFileDetail(path) { if (detailFile === path) { detailFile = null; } else { detailFile = path; } render(); if (detailFile) { const panel = document.getElementById('detail-panel'); if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
+function toggleTokenDetail(path) { if (openTokenDetails.has(path)) openTokenDetails.delete(path); else openTokenDetails.add(path); render(); }
+function toggleMigDetail(src) { if (openMigDetails.has(src)) openMigDetails.delete(src); else openMigDetails.add(src); render(); }
+function togglePhaseCard(id) { if (openPhaseCards.has(id)) openPhaseCards.delete(id); else openPhaseCards.add(id); render(); }
 
 function showDetail(filePath) {
+  if (detailFile === filePath) return;
   detailFile = filePath;
   const file = report.files.find(f => f.path === filePath);
   if (!file) return;
@@ -693,7 +737,7 @@ function showDetail(filePath) {
   panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-16)"><h3 class="ts-d-m" style="font-family:var(--font-family-mono)">${file.path}</h3><button class="detail-close ts-xxs-m" onclick="closeDetail()">Close</button></div><div class="violation-list">${allV.map(v => { const c = CATS[v.cat]?.color || 'var(--color-info)'; return `<div class="violation-item"><span class="violation-line ts-xxs-r">L${v.line}</span><span class="violation-match ts-xxs-m" style="color:${c}">${v.match}</span><span class="violation-context ts-xxs-r">${esc(v.context)}</span></div>`; }).join('')}</div>`;
   panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
-function closeDetail() { detailFile = null; document.getElementById('detail-panel').className = 'detail-panel'; }
+function closeDetail() { detailFile = null; render(); }
 
 loadReport();
 </script>
