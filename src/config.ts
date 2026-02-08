@@ -170,7 +170,7 @@ export const DEFAULT_CONFIG: DsCoverageConfig = {
 
   componentAnalysis: {
     enabled: false,
-    showApiRedesignTab: true,
+    showApiRedesignTab: false,
     directories: ["components/ui/"],
     primaryDirectory: "components/ui/",
     legacyDirectories: [],
